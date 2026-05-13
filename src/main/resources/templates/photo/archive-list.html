@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head>
+    <title th:text="#{label.photo.archive}">Archived Photos</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.photo.archive}">Archived Photos</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="alert alert-success" th:if="${message}" th:text="#{${message}}">Success</div>
+        <div class="alert alert-danger" th:if="${error}" th:text="${error}">Error</div>
+
+        <div class="alert alert-info" th:if="${#lists.isEmpty(photos)}" th:text="#{msg.photo.archive.empty}">
+            No archived photos.
+        </div>
+
+        <div class="card" th:if="${!#lists.isEmpty(photos)}">
+            <div class="table-responsive">
+                <table class="table table-vcenter table-striped table-hover table-nowrap card-table">
+                    <thead>
+                    <tr>
+                        <th th:text="#{label.photo}">Photo</th>
+                        <th th:text="#{label.category}">Category</th>
+                        <th th:text="#{label.tags}">Tags</th>
+                        <th th:text="#{label.photo.uploadedAt}">Uploaded at</th>
+                        <th th:text="#{label.photo.deletedAt}">Archived at</th>
+                        <th th:text="#{label.actions}">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="photo : ${photos}">
+                        <td>
+                            <a th:href="@{|/photos/archive/${photo.id}|}" th:title="${photo.originalFilename}">
+                                <img th:src="|/assets/thumb_${photo.internalFilename}|" th:alt="${photo.originalFilename}" style="max-width: 50px; max-height: 50px;" />
+                            </a></td>
+                        <td>
+                            <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none">
+                                <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="${photo.category.name}">category</span>
+                            </a>
+                        </td>
+                        <td>
+                            <span th:if="${photo.tags == null or photo.tags.isEmpty()}" th:text="'-'">-</span>
+                            <span th:if="${photo.tags != null and !photo.tags.isEmpty()}">
+                                <span th:each="tag : ${photo.tags}">
+                                    <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none me-1">
+                                        <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
+                                    </a>
+                                </span>
+                            </span>
+                        </td>
+                        <td th:text="${#temporals.format(photo.uploadedAt, 'dd.MM.yyyy HH:mm')}">2026-01-01T00:00:00Z</td>
+                        <td th:text="${#temporals.format(photo.deleteDate, 'dd.MM.yyyy HH:mm')}">2026-01-31T00:00:00Z</td>
+                        <td>
+                            <form th:action="@{|/photos/${photo.id}/restore|}" method="post" class="d-inline">
+                                <input type="hidden" name="redirect" value="/photos/archive" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary" th:text="#{label.btn.restore}">Restore</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3" th:if="${pageData}">
+            <ul class="pagination m-0">
+                <li class="page-item" th:classappend="${pageData.first} ? ' disabled'">
+                    <a class="page-link" th:if="${!pageData.first}" th:href="@{/photos/archive(page=${pageData.number - 1},size=${pageSize})}">&laquo;</a>
+                    <span class="page-link" th:if="${pageData.first}">&laquo;</span>
+                </li>
+                <li class="page-item"
+                    th:each="pageNumber : ${#numbers.sequence(0, pageData.totalPages - 1)}"
+                    th:classappend="${pageNumber == pageData.number} ? ' active'">
+                    <a class="page-link" th:href="@{/photos/archive(page=${pageNumber},size=${pageSize})}" th:text="${pageNumber + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${pageData.last} ? ' disabled'">
+                    <a class="page-link" th:if="${!pageData.last}" th:href="@{/photos/archive(page=${pageData.number + 1},size=${pageSize})}">&raquo;</a>
+                    <span class="page-link" th:if="${pageData.last}">&raquo;</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</html>

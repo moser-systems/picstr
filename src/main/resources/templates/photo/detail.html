@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head>
+    <title th:text="#{label.photo.detail}">Photo Detail</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.photo}">Photo</h2>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <a th:if="${archived == null or !archived}"
+                   class="btn btn-secondary"
+                   th:href="@{|/photos/${photo.id}/edit|}"
+                   th:text="#{label.btn.edit}">Edit</a>
+
+                <form th:if="${archived == null or !archived}"
+                      th:action="@{|/photos/${photo.id}/archive|}"
+                      method="post"
+                      th:onsubmit="|return confirm('#{msg.photo.confirmArchive}');|">
+                    <button class="btn btn-danger" type="submit" th:text="#{label.btn.archive}">Archive</button>
+                </form>
+
+                <form th:if="${archived != null and archived}"
+                      th:action="@{|/photos/${photo.id}/restore|}"
+                      method="post">
+                    <input type="hidden" name="redirect" th:value="@{|/photos/${photo.id}|}" />
+                    <button class="btn btn-primary" type="submit" th:text="#{label.btn.restore}">Restore</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div class="card">
+                    <img th:src="@{|/assets/${photo.internalFilename}|}"
+                         th:alt="${photo.originalFilename}"
+                         class="card-img-top">
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <tbody>
+                            <tr><th class="w-40" th:text="#{label.id}">ID</th><td th:text="${photo.id}">1</td></tr>
+                            <tr><th th:text="#{label.photo.originalFilename}">Original Filename</th><td th:text="${photo.originalFilename}">orig.jpg</td></tr>
+                            <tr><th th:text="#{label.photo.internalFilename}">Internal Filename</th><td class="text-muted small" th:text="${photo.internalFilename}">uuid.jpg</td></tr>
+                            <tr><th th:text="#{label.photo.contentType}">Content Type</th><td th:text="${photo.contentType}">image/jpeg</td></tr>
+                            <tr><th th:text="#{label.description}">Description</th><td th:text="${photo.description ?: '-'}">-</td></tr>
+                            <tr><th th:text="#{label.photo.size}">Size</th><td><span th:text="${photo.sizeBytes}">0</span> <span th:text="#{label.bytes}">bytes</span></td></tr>
+                            <tr>
+                                <th th:text="#{label.category}">Category</th>
+                                <td>
+                                    <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none">
+                                        <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="${photo.category.name}">other</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th th:text="#{label.tags}">Tags</th>
+                                <td>
+                                    <span th:if="${photo.tags == null or photo.tags.isEmpty()}" th:text="'-'">-</span>
+                                    <div th:if="${photo.tags != null and !photo.tags.isEmpty()}" class="badges-list">
+                                        <span th:each="tag : ${photo.tags}" class="me-1">
+                                            <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
+                                                <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
+                                            </a>
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr><th th:text="#{label.latitude}">Latitude</th><td th:text="${photo.latitude}">—</td></tr>
+                            <tr><th th:text="#{label.longitude}">Longitude</th><td th:text="${photo.longitude}">—</td></tr>
+                            <tr><th th:text="#{label.photo.uploadedAt}">Uploaded At</th><td th:text="${photo.uploadedAt}">2026-01-01T00:00:00Z</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card mt-3" th:if="${photo.latitude != null and photo.longitude != null}">
+                    <div class="card-header">
+                        <h3 class="card-title">Map</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="photo-map"
+                             style="height: 320px;"
+                             th:attr="data-latitude=${photo.latitude},data-longitude=${photo.longitude}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:if="${photo.latitude != null and photo.longitude != null}">
+        const mapContainer = document.getElementById('photo-map');
+        const latitude = Number(mapContainer.dataset.latitude);
+        const longitude = Number(mapContainer.dataset.longitude);
+
+        const map = L.map('photo-map').setView([latitude, longitude], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([latitude, longitude]).addTo(map);
+    </script>
+</div>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head><title th:text="#{label.category.detail}">Category Detail</title></head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.category.detail}">Category Detail</h2>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <a class="btn btn-secondary" th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}">Edit</a>
+                <form th:action="@{|/categories/${category.id}/delete|}" method="post"
+                      th:onsubmit="|return confirm('#{msg.category.confirmDelete}');|">
+                    <button class="btn btn-danger" type="submit" th:text="#{label.btn.delete}">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <tbody>
+                    <tr><th class="w-25" th:text="#{label.id}">ID</th><td th:text="${category.id}">1</td></tr>
+                    <tr>
+                        <th th:text="#{label.name}">Name</th>
+                        <td><span th:class="|badge bg-${category.color} text-${category.color}-fg|" th:text="${category.name}">other</span></td>
+                    </tr>
+                    <tr><th th:text="#{label.description}">Description</th><td th:text="${category.description ?: '-'}">-</td></tr>
+                    <tr><th th:text="#{label.color}">Color</th><td th:text="${category.color ?: 'blue'}">blue</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

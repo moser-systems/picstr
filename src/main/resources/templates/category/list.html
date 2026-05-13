@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head><title th:text="#{label.categories}">Categories</title></head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.categories}">Categories</h2>
+            </div>
+            <div class="col-auto">
+                <a th:href="@{/categories/new}" class="btn btn-primary" th:text="#{label.btn.newCategory}">New Category</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="card" th:if="${#lists.isEmpty(categories)}">
+            <div class="card-body text-muted" th:text="#{msg.category.list.empty}">No categories yet.</div>
+        </div>
+
+        <div class="card" th:if="${!#lists.isEmpty(categories)}">
+            <div class="table-responsive">
+                <table class="table table-vcenter table-striped table-hover table-nowrap card-table">
+                    <thead>
+                    <tr>
+                        <th class="w-1" th:text="#{label.name}">Name</th>
+                        <th th:text="#{label.description}">Description</th>
+                        <th class="w-1"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="category : ${categories}">
+                        <td>
+                            <a th:href="@{|/categories/${category.id}|}" class="text-decoration-none">
+                                <span th:class="|badge bg-${category.color} text-${category.color}-fg|" th:text="${category.name}">other</span>
+                            </a>
+                        </td>
+                        <td>
+                            <th:block th:if="${category.description}">
+                                <span th:with="desc=${category.description}, len=${#strings.length(category.description)}" th:title="${desc}" th:text="(${len > 100})
+                                    ? ${#strings.substring(desc, 0, 100)} + '…'
+                                    : ${desc}">
+                                </span>
+                            </th:block>
+                            <th:block th:unless="${category.description}">-</th:block>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary me-1"
+                               th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}">Edit</a>
+                            <form th:action="@{|/categories/${category.id}/delete|}" method="post"
+                                  class="d-inline" th:onsubmit="|return confirm('#{msg.category.confirmDelete}');|">
+                                <button class="btn btn-sm btn-outline-danger" type="submit" th:text="#{label.btn.delete}">Delete...</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3" th:if="${pageData}">
+            <ul class="pagination m-0">
+                <li class="page-item" th:classappend="${pageData.first} ? ' disabled'">
+                    <a class="page-link" th:href="@{/categories(page=${pageData.number - 1},size=${pageSize})}" th:if="${!pageData.first}">&laquo;</a>
+                    <span class="page-link" th:if="${pageData.first}">&laquo;</span>
+                </li>
+                <li class="page-item"
+                    th:each="pageNumber : ${#numbers.sequence(0, pageData.totalPages - 1)}"
+                    th:classappend="${pageNumber == pageData.number} ? ' active'">
+                    <a class="page-link" th:href="@{/categories(page=${pageNumber},size=${pageSize})}" th:text="${pageNumber + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${pageData.last} ? ' disabled'">
+                    <a class="page-link" th:href="@{/categories(page=${pageData.number + 1},size=${pageSize})}" th:if="${!pageData.last}">&raquo;</a>
+                    <span class="page-link" th:if="${pageData.last}">&raquo;</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</html>

@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(1000),
+    color VARCHAR(20) NOT NULL DEFAULT 'blue'
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(1000),
+    color VARCHAR(20) NOT NULL DEFAULT 'blue'
+);
+
+CREATE TABLE IF NOT EXISTS photos (
+    id BIGSERIAL PRIMARY KEY,
+    original_filename VARCHAR(255) NOT NULL,
+    internal_filename VARCHAR(255) NOT NULL UNIQUE,
+    content_type VARCHAR(100) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    description VARCHAR(1000),
+    latitude DECIMAL(10,7),
+    longitude DECIMAL(10,7),
+    category_id BIGINT NOT NULL,
+    uploaded_at TIMESTAMP NOT NULL,
+    delete_date TIMESTAMP NULL,
+    CONSTRAINT fk_photo_category FOREIGN KEY (category_id) REFERENCES categories (id)
+);
+
+CREATE TABLE IF NOT EXISTS photo_tags (
+    photo_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL,
+    PRIMARY KEY (photo_id, tag_id),
+    CONSTRAINT fk_photo_tags_photo FOREIGN KEY (photo_id) REFERENCES photos (id),
+    CONSTRAINT fk_photo_tags_tag FOREIGN KEY (tag_id) REFERENCES tags (id)
+);
+
+INSERT INTO categories (name)
+SELECT 'other'
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'other');

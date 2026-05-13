@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head>
+    <title th:text="#{label.nav.home}">Home</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.photo.latest}">Latest Photos</h2>
+            </div>
+            <div class="col-auto">
+                <a href="/photos/upload" class="btn btn-primary" th:text="#{label.btn.uploadPhoto}">Upload Photo</a>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{photo/list :: photoCards(${latestPhotos}, #{msg.photo.list.empty.latest})}"></div>
+</div>
+</html>

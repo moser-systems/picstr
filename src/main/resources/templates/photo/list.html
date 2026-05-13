@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head>
+    <title th:text="#{label.photos}">Photo List</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title">
+                    <span th:if="${filterType == 'category'}" th:text="#{label.photo.list.byCategory(${filterValue})}">Photos in category</span>
+                    <span th:if="${filterType == 'tag'}" th:text="#{label.photo.list.byTag(${filterValue})}">Photos with tag</span>
+                    <span th:if="${filterType != 'category' and filterType != 'tag'}" th:text="${listTitle} ?: #{label.photos}">Photos</span>
+                </h2>
+            </div>
+            <div class="col-auto">
+                <a href="/photos/upload" class="btn btn-primary" th:text="#{label.btn.upload}">Upload Photo</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body" th:fragment="photoCards(photos, emptyMessage)">
+        <div class="alert alert-info" th:if="${#lists.isEmpty(photos)}">
+            <span th:if="${filterType == 'category'}" th:text="#{msg.photo.list.empty.category}">No photos found for this category.</span>
+            <span th:if="${filterType == 'tag'}" th:text="#{msg.photo.list.empty.tag}">No photos found for this tag.</span>
+            <span th:if="${filterType != 'category' and filterType != 'tag'}" th:text="${emptyMessage}">No photos found.</span>
+        </div>
+
+        <div class="row row-cards" th:if="${!#lists.isEmpty(photos)}">
+            <div class="col-sm-6 col-lg-4 col-xl-3" th:each="photo : ${photos}">
+                <div class="card card-link card-link-pop">
+                    <a th:href="@{|/photos/${photo.id}|}">
+                        <div th:title="${photo.originalFilename}" class="card-img-top img-responsive img-responsive-1x1"
+                             th:style="|background-image: url('/assets/thumb_${photo.internalFilename}')|">
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <a th:href="@{|/photos/by-category/${photo.category.name}|}" class="text-decoration-none">
+                            <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="|${photo.category.name}|">category</span>
+                        </a>
+                        <div class="mt-2">
+                            <div class="badges-list">
+                                <span th:each="tag : ${photo.tags}">
+                                    <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
+                                        <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
+                                    </a>
+                                </span>
+                                <span>&nbsp;</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3" th:if="${pageData}">
+            <ul class="pagination m-0">
+                <li class="page-item" th:classappend="${pageData.first} ? ' disabled'">
+                    <a class="page-link" th:if="${!pageData.first}" th:href="@{|${currentUrl}?page=${pageData.number - 1}&size=${pageSize}|}">&laquo;</a>
+                    <span class="page-link" th:if="${pageData.first}">&laquo;</span>
+                </li>
+                <li class="page-item"
+                    th:each="pageNumber : ${#numbers.sequence(0, pageData.totalPages - 1)}"
+                    th:classappend="${pageNumber == pageData.number} ? ' active'">
+                    <a class="page-link" th:href="@{|${currentUrl}?page=${pageNumber}&size=${pageSize}|}" th:text="${pageNumber + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${pageData.last} ? ' disabled'">
+                    <a class="page-link" th:if="${!pageData.last}" th:href="@{|${currentUrl}?page=${pageData.number + 1}&size=${pageSize}|}">&raquo;</a>
+                    <span class="page-link" th:if="${pageData.last}">&raquo;</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</html>

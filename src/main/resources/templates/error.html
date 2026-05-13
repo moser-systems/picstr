@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head><title th:text="#{label.error}">Error</title></head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.error}">Error</h2>
+            </div>
+        </div>
+    </div>
+    <div class="page-body">
+        <div th:text="#{msg.error.unexpected}">
+            An unexpected error occurred.
+        </div>
+    </div>
+</div>
+</html>
