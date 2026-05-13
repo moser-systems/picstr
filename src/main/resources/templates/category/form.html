@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head><title th:text="#{label.category}">Category</title></head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="${isEdit} ? #{label.category.edit} : #{label.category.new}">Category</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="card">
+            <div class="card-body">
+                <form th:action="${isEdit} ? @{|/categories/${categoryId}|} : @{/categories}"
+                      th:object="${categoryForm}"
+                      method="post">
+                    <div class="mb-3">
+                        <label class="form-label" for="name" th:text="#{label.name}">Name</label>
+                        <input id="name"
+                               type="text"
+                               th:field="*{name}"
+                               th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'"
+                               class="form-control"
+                               maxlength="100"
+                               th:placeholder="#{label.placeholder.category}"
+                               required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="description" th:text="#{label.description}">Description</label>
+                        <textarea id="description"
+                                  class="form-control"
+                                  th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'"
+                                  th:field="*{description}"
+                                  maxlength="1000"
+                                  rows="4"></textarea>
+                        <div class="form-hint" th:text="#{msg.description.optional}">Optional, up to 1000 characters.</div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Description error</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="color" th:text="#{label.color}">Color</label>
+                        <select id="color"
+                                class="form-select"
+                                th:field="*{color}"
+                                required>
+                            <option value="" th:text="#{label.color.select}">Select color</option>
+                            <option th:each="color : ${colors}" th:value="${color}" th:text="${#strings.capitalize(color)}">Blue</option>
+                        </select>
+                        <div class="form-hint" th:text="#{msg.color.hint}">Choose a Tabler badge color.</div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('color')}" th:errors="*{color}">Color error</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" th:text="${isEdit} ? #{label.btn.update} : #{label.btn.save}">Save</button>
+                        <a class="btn btn-secondary" th:href="@{/categories}" th:text="#{label.btn.cancel}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

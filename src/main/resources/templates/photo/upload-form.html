@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head><title th:text="#{label.photo.upload}">Upload Photo</title></head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.photo.upload}">Upload Photo</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="card">
+            <div class="card-body">
+                <form th:action="@{/photos/upload}" th:object="${uploadForm}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label" for="image" th:text="#{label.image}">Image</label>
+                        <input id="image" type="file" class="form-control"
+                               th:field="*{image}" accept="image/*" capture="environment" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="category" th:text="#{label.category}">Category</label>
+                        <select id="category" class="form-select" th:field="*{category}" required>
+                            <option value="" th:text="#{label.category.select}">Select category</option>
+                            <option th:each="category : ${categories}"
+                                    th:value="${category.id}"
+                                    th:text="${#strings.capitalize(category.name)}"></option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="description" th:text="#{label.description}">Description</label>
+                        <textarea id="description"
+                                  class="form-control"
+                                  th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'"
+                                  th:field="*{description}"
+                                  maxlength="1000"
+                                  rows="4"></textarea>
+                        <div class="form-hint" th:text="#{msg.description.optional}">Optional, up to 1000 characters.</div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Description error</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="tags" th:text="#{label.tags}">Tags</label>
+                        <select id="tags" class="form-select" multiple th:field="*{tags}" autocomplete="off">
+                            <option th:each="tag : ${allTags}"
+                                    th:value="${tag.name}"
+                                    th:text="${tag.name}">
+                            </option>
+                        </select>
+
+                        <div class="form-hint" th:text="#{msg.tags.hint}">Select existing tags or type a new one and press Enter.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="latitude" th:text="#{label.latitude}">Latitude</label>
+                        <input id="latitude" type="text" class="form-control" th:field="*{latitude}" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="longitude" th:text="#{label.longitude}">Longitude</label>
+                        <input id="longitude" type="text" class="form-control" th:field="*{longitude}" readonly>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" onclick="prefillLocation()" th:text="#{label.btn.useLocation}">Use current location</button>
+                        <button type="submit" class="btn btn-primary" th:text="#{label.btn.upload}">Upload now</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function prefillLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(success, error);
+        }
+        function success(position) {
+            document.getElementById('latitude').value = position.coords.latitude.toFixed(7);
+            document.getElementById('longitude').value = position.coords.longitude.toFixed(7);
+        }
+        function error() {
+            alert("Sorry, no position available.");
+        }
+        new TomSelect('#tags', {
+            create: true,
+            createOnBlur: true,
+            allowEmptyOption: true,
+            maxItems: 5,
+            plugins: ['remove_button']
+        });
+    </script>
+</div>
+</html>
