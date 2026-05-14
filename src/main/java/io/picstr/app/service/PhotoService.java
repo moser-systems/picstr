@@ -126,7 +126,7 @@ public class PhotoService {
 
     @Transactional(readOnly = true)
     public List<Photo> latest() {
-        return photoRepository.findByDeleteDateIsNull(Sort.by(Sort.Direction.DESC, "uploadedAt")).stream().limit(12).toList();
+        return photoRepository.findByDeleteDateIsNull(Sort.by(Sort.Direction.DESC, "uploadedAt")).stream().limit(8).toList();
     }
 
     @Transactional(readOnly = true)
