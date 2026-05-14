@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,15 +22,16 @@ jobs:
           cache: maven
 
       - name: Run tests
-        run: mvn test
+        run: ./mvnw test
 
       - name: Add coverage to PR
         id: jacoco
         uses: madrapps/jacoco-report@v1.7.2
         with:
           paths: |
-            ${{ github.workspace }}/**/build/reports/jacoco/prodNormalDebugCoverage/prodNormalDebugCoverage.xml,
-            ${{ github.workspace }}/**/build/reports/jacoco/**/debugCoverage.xml
+            ${{ github.workspace }}/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 40
           min-coverage-changed-files: 60
+          pass-emoji: ':green_circle:'
+          fail-emoji: ':red_circle:'
