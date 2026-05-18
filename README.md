@@ -2,15 +2,37 @@
 
 A **mobile-first direct photo upload and management application** built with Spring Boot. Upload photos from a mobile device or desktop, organise them with categories and tags, view them in a responsive gallery.
 
+Quickstart:
+See [Running](#running) for a quick way to run the application locally with an embedded H2 database and local storage.
+
+## Index
+- [Why](#why)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Building](#building)
+- [Running](#running)
+- [Container Images](#container-images)
+- [Configuration Reference](#configuration-reference)
+- [Example docker-compose](#example-docker-compose)
+- [Development Tips](#development-tips)
+- [Contributing](#contributing)
+- [License](#license)
+- [Future Enhancements](#future-enhancements)
+
+---
+
 ## Why
-### Privacy
+
+### 1. Privacy
 Photos will **not be stored on the device** but directly uploaded to the backend, so it won't take up local storage space and respects privacy by not leaving traces in the device's gallery.
 ### Accessibility
 Anyone from your organization can access photos with a web browser.
-### Organization
+### 2. Organization
 Organize photos with categories and tags, and view them in a responsive gallery with pagination.
-### Open-source and self-hosted
+### 3. Open-source and self-hosted
 Self-hosted and open-source, so you have full control over your data and can contribute to the project.
+
+---
 
 ## Features
 
@@ -133,13 +155,22 @@ java -jar target/picstr-*.jar \
 
 ### Pre-built runtime image
 
-Expects a pre-built fat-jar at `target/app.jar`.
+####  Quick testing with H2 and local storage:
 
 ```bash
-# Build
-podman build -f Containerfile -t picstr:latest .
+podman run -p 8080:8080 \
+-e 'DB_URL=jdbc:h2:file:./data/picstr-dev;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH' \
+-e DB_USER=sa \
+-e DB_PASSWORD= \
+-e APP_STORAGE_TYPE=local \
+-e APP_STORAGE_LOCAL_BASE_PATH=/data/uploads \
+-v $(pwd)/picstr-data:/data \
+ghcr.io/moser-systems/picstr:latest
+```
 
-# Run
+#### With MariaDB and local storage:
+
+```bash
 podman run -p 8080:8080 \
   -e DB_URL="jdbc:mariadb://db:3306/picstr?createDatabaseIfNotExist=true" \
   -e DB_USER=picstr \
@@ -147,17 +178,7 @@ podman run -p 8080:8080 \
   -e APP_STORAGE_TYPE=local \
   -e APP_STORAGE_LOCAL_BASE_PATH=/data/uploads \
   -v /your/uploads:/data/uploads \
-  picstr:latest
-```
-
-### Multi-stage build (includes Maven + npm build)
-
-```bash
-# Build everything from source (includes GraphicsMagick in final image)
-podman build -f Dockerfile.multistage -t picstr:latest .
-
-# Or with Docker
-docker build -f Dockerfile.multistage -t picstr:latest .
+  ghcr.io/moser-systems/picstr:latest
 ```
 
 ---
@@ -198,7 +219,7 @@ DB_PASSWORD=secret
 
 > Flyway automatically picks up migrations from `db/migration/postgresql/`.
 
-#### H2 (dev / CI)
+#### H2 (dev / CI / testing)
 
 ```properties
 spring.datasource.url=jdbc:h2:file:./data/picstr-dev;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
@@ -311,7 +332,7 @@ APP_PHOTO_RECONCILE_CRON=0 15 4 * * *  # run at 4:15 AM daily (default)
 ```yaml
 services:
   picstr:
-    image: picstr:latest
+    image: ghcr.io/moser-systems/picstr:latest
     build:
       context: .
       dockerfile: Dockerfile.multistage
