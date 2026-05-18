@@ -229,7 +229,7 @@ public class PhotoController extends BaseController {
     public String archive(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             service.archive(id);
-            redirectAttributes.addFlashAttribute("message", "msg.photo.archive.success");
+            redirectAttributes.addFlashAttribute("success", "msg.photo.archive.success");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }

@@ -74,7 +74,7 @@ public class TagController extends BaseController {
 
         try {
             tagService.create(tagForm.getName(), tagForm.getDescription(), tagForm.getColor());
-            redirectAttributes.addFlashAttribute("message", "Tag created.");
+            redirectAttributes.addFlashAttribute("success", "msg.tag.create.success");
             return "redirect:/tags";
         } catch (IllegalArgumentException ex) {
             rejectFieldError(bindingResult, ex);
