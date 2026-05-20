@@ -1,5 +1,7 @@
 package io.picstr.app.config;
 
+import java.util.List;
+import java.util.Locale;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
@@ -9,16 +11,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 
-import java.util.Locale;
-
 @Configuration
 public class WebLangConfig implements WebMvcConfigurer {
 
+    private static final List<Locale> SUPPORTED_LOCALES = List.of(Locale.ENGLISH, Locale.GERMAN);
+
     @Bean
     public LocaleResolver localeResolver() {
-        SessionLocaleResolver lr = new SessionLocaleResolver();
-        lr.setDefaultLocale(Locale.ENGLISH);
-        return lr;
+        SessionLocaleResolver resolver = new SessionLocaleResolver();
+        resolver.setDefaultLocaleFunction(request -> {
+            Locale requested = request.getLocale();
+            if (requested == null) {
+                return Locale.ENGLISH;
+            }
+            return SUPPORTED_LOCALES.stream()
+                .filter(locale -> locale.getLanguage().equals(requested.getLanguage()))
+                .findFirst()
+                .orElse(Locale.ENGLISH);
+        });
+        return resolver;
     }
 
     @Bean
