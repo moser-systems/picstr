@@ -13,6 +13,7 @@ See [Running](#running) for a quick way to run the application locally with an e
 - [Running](#running)
 - [Container Images](#container-images)
 - [Configuration Reference](#configuration-reference)
+  - [Authentication (OAuth2 / OpenID Connect)](#authentication-oauth2--openid-connect)
 - [Example docker-compose](#example-docker-compose)
 - [Development Tips](#development-tips)
 - [Contributing](#contributing)
@@ -327,6 +328,146 @@ APP_PHOTO_RECONCILE_CRON=0 15 4 * * *  # run at 4:15 AM daily (default)
 
 ---
 
+## Authentication (OAuth2 / OpenID Connect)
+
+PicStr supports OAuth2 and OpenID Connect (OIDC) authentication, allowing integration with identity providers like Microsoft Entra ID, Google, and others.
+
+### Authentication Modes
+
+Use `app.security.auth-mode` (or `APP_SECURITY_AUTH_MODE`) to choose authentication behavior explicitly:
+
+```properties
+app.security.auth-mode=basic   # HTTP Basic auth
+app.security.auth-mode=oauth2  # OpenID Connect / OAuth2 login
+app.security.auth-mode=none    # Disable authentication entirely
+```
+
+> Legacy compatibility: `app.security.authentication-enabled=false` still forces `none` mode.
+
+### Disabling Authentication (Development/Testing)
+
+To disable authentication entirely (useful for development or testing), set:
+
+```properties
+app.security.auth-mode=none
+```
+
+Or as an environment variable:
+```bash
+APP_SECURITY_AUTH_MODE=none
+```
+
+When disabled, all endpoints will be publicly accessible without requiring login. **Only use this in development environments.**
+
+Example for local development:
+```bash
+./mvnw spring-boot:run \
+  -Dspring-boot.run.profiles=dev \
+  -Dspring-boot.run.arguments="--app.security.auth-mode=none"
+```
+
+### Microsoft Entra ID (Azure AD) Configuration
+
+#### Step 1: Register an Application in Microsoft Entra ID
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to **Azure Active Directory** → **App registrations** → **New registration**
+3. Fill in the app details:
+   - **Name**: PicStr (or your preferred name)
+   - **Supported account types**: Choose based on your use case (e.g., "Accounts in this organizational directory only")
+4. Click **Register**
+
+#### Step 2: Get Client Credentials
+
+After the app is registered:
+
+1. Copy the **Application (client) ID** - you'll need this for `OIDC_CLIENT_ID`
+2. Go to **Certificates & secrets** → **New client secret**
+3. Copy the value of the generated secret - you'll need this for `OIDC_CLIENT_SECRET`
+4. (Optional) Note the **Directory (tenant) ID** for the `OIDC_TENANT_ID` environment variable
+
+#### Step 3: Configure Redirect URI
+
+1. Go to **Authentication** → **Add a platform** → **Web**
+2. Add the redirect URI:
+   - **Development**: `http://localhost:8080/login/oauth2/code/microsoft`
+   - **Production**: `https://your-domain.com/login/oauth2/code/microsoft`
+3. Enable **ID tokens** and **Access tokens** under "Implicit grant and hybrid flows"
+4. Click **Configure**
+
+#### Step 4: Run PicStr with OIDC
+
+**Option A: Local Development with Properties**
+
+Create or modify `application-oidc-microsoft.properties` with your credentials:
+
+```properties
+spring.security.oauth2.client.registration.microsoft.client-id=your-client-id
+spring.security.oauth2.client.registration.microsoft.client-secret=your-client-secret
+spring.security.oauth2.client.provider.microsoft.issuer-uri=https://login.microsoftonline.com/common/v2.0
+spring.security.oauth2.client.registration.microsoft.redirect-uri=http://localhost:8080/login/oauth2/code/microsoft
+```
+
+Then run:
+```bash
+./mvnw spring-boot:run \
+  -Dspring-boot.run.profiles=oidc-microsoft \
+  -Dspring-boot.run.arguments="\
+    --spring.datasource.url=jdbc:mariadb://localhost:3306/picstr?createDatabaseIfNotExist=true \
+    --spring.datasource.username=picstr \
+    --spring.datasource.password=picstr \
+    --app.storage.type=local"
+```
+
+**Option B: Docker / Docker Compose**
+
+```bash
+docker run -p 8080:8080 \
+  -e SPRING_PROFILES_ACTIVE=oidc-microsoft \
+  -e OIDC_CLIENT_ID=your-client-id \
+  -e OIDC_CLIENT_SECRET=your-client-secret \
+  -e OIDC_TENANT_ID=your-tenant-id \
+  -e DB_URL=jdbc:mariadb://db:3306/picstr?createDatabaseIfNotExist=true \
+  -e DB_USER=picstr \
+  -e DB_PASSWORD=secret \
+  -e APP_STORAGE_TYPE=s3 \
+  -e APP_STORAGE_S3_ENDPOINT=http://minio:9000 \
+  -e APP_STORAGE_S3_BUCKET=picstr-images \
+  -e APP_STORAGE_S3_ACCESS_KEY=minioadmin \
+  -e APP_STORAGE_S3_SECRET_KEY=minioadmin \
+  ghcr.io/moser-systems/picstr:latest
+```
+
+**Option C: Docker Compose (Recommended)**
+
+See [Example docker-compose with OIDC](#example-docker-compose-with-oidc-and-microsoft-entra-id) below for a complete setup.
+
+#### Step 5: Access PicStr
+
+1. Navigate to `http://localhost:8080`
+2. You'll be redirected to the Microsoft login page
+3. Log in with your Microsoft credentials
+4. You'll be redirected back to PicStr
+
+#### Other Supported Providers
+
+The same configuration can be adapted for other OAuth2/OIDC providers:
+
+**Google**:
+```properties
+spring.security.oauth2.client.registration.google.client-id=your-google-client-id
+spring.security.oauth2.client.registration.google.client-secret=your-google-client-secret
+```
+
+**Generic OIDC Provider**:
+```properties
+spring.security.oauth2.client.registration.myprovider.client-id=your-client-id
+spring.security.oauth2.client.registration.myprovider.client-secret=your-client-secret
+spring.security.oauth2.client.provider.myprovider.issuer-uri=https://your-provider.com/.well-known/openid-configuration
+```
+
+---
+
 ## Example docker-compose
 
 ```yaml
@@ -378,6 +519,88 @@ volumes:
   db-data:
   minio-data:
 ```
+
+---
+
+## Example docker-compose with OIDC and Microsoft Entra ID
+
+```yaml
+services:
+  picstr:
+    image: ghcr.io/moser-systems/picstr:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.multistage
+    ports:
+      - "8080:8080"
+    environment:
+      # Spring Profile for OIDC
+      SPRING_PROFILES_ACTIVE: oidc-microsoft
+      
+      # OAuth2 / OpenID Connect Configuration (Microsoft Entra ID)
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}           # From: App registrations > Application (client) ID
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}   # From: Certificates & secrets
+      OIDC_TENANT_ID: ${OIDC_TENANT_ID:common}    # Your tenant ID (optional, defaults to common)
+      
+      # Database Configuration
+      DB_URL: jdbc:mariadb://db:3306/picstr?createDatabaseIfNotExist=true
+      DB_USER: picstr
+      DB_PASSWORD: picstr-secret
+      
+      # Storage Configuration (S3 / MinIO)
+      APP_STORAGE_TYPE: s3
+      APP_STORAGE_S3_ENDPOINT: http://minio:9000
+      APP_STORAGE_S3_BUCKET: picstr-images
+      APP_STORAGE_S3_ACCESS_KEY: minioadmin
+      APP_STORAGE_S3_SECRET_KEY: minioadmin
+      APP_STORAGE_S3_PATH_STYLE_ACCESS_ENABLED: "true"
+    depends_on:
+      - db
+      - minio
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: picstr
+      MARIADB_USER: picstr
+      MARIADB_PASSWORD: picstr-secret
+      MARIADB_ROOT_PASSWORD: root-secret
+    volumes:
+      - db-data:/var/lib/mysql
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+volumes:
+  db-data:
+  minio-data:
+```
+
+**To use this configuration:**
+
+1. Create a `.env` file in the same directory as `docker-compose.yml`:
+```env
+OIDC_CLIENT_ID=your-microsoft-client-id
+OIDC_CLIENT_SECRET=your-microsoft-client-secret
+OIDC_TENANT_ID=your-tenant-id
+```
+
+2. Run the docker-compose:
+```bash
+docker-compose up
+```
+
+3. Access PicStr at `http://localhost:8080` and authenticate with Microsoft Entra ID
+
 ---
 
 ## Development Tips
@@ -395,7 +618,6 @@ Contributions, bug reports and feature requests are welcome! Please open an issu
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Future Enhancements
-- User authentication and access control
 - Bulk upload and management features
 - Search functionality by filename, description, category, tags, and GPS coordinates
 - API endpoints for integration with other applications or mobile clients
