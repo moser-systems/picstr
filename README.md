@@ -344,6 +344,24 @@ app.security.auth-mode=none    # Disable authentication entirely
 
 > Legacy compatibility: `app.security.authentication-enabled=false` still forces `none` mode.
 
+### Recent Images RSS Feed (Authenticated)
+
+An RSS feed of recent uploads is available at:
+
+```text
+/feeds/recent.xml
+```
+
+- The feed is protected by Spring Security in `basic` and `oauth2` modes (not publicly accessible).
+- Item records are intentionally minimal: title, direct original asset link, GUID, publish date.
+- Thumbnail links and photo detail page links are not included.
+
+Optional limit query parameter:
+
+```text
+/feeds/recent.xml?limit=20
+```
+
 ### Disabling Authentication (Development/Testing)
 
 To disable authentication entirely (useful for development or testing), set:

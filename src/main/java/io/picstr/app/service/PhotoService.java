@@ -130,6 +130,13 @@ public class PhotoService {
     }
 
     @Transactional(readOnly = true)
+    public List<Photo> recentForFeed(int limit) {
+        var safeLimit = Math.max(1, Math.min(limit, 100));
+        var pageable = PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "uploadedAt"));
+        return photoRepository.findByDeleteDateIsNull(pageable).getContent();
+    }
+
+    @Transactional(readOnly = true)
     public Page<Photo> byCategory(String categoryName, int page, int size) {
         var normalized = normalize(categoryName);
         if (!StringUtils.hasText(normalized)) {
