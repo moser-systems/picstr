@@ -65,9 +65,11 @@ public class FeedController {
             entry.setLinks(List.of(imageLink));
             entry.setLink(assetUrl);
 
-            SyndCategory category = new SyndCategoryImpl();
-            category.setName(photo.getCategory().toString());
-            entry.setCategories(List.of(category));
+            if (photo.getCategory() != null) {
+                SyndCategory category = new SyndCategoryImpl();
+                category.setName(photo.getCategory().toString());
+                entry.setCategories(List.of(category));
+            }
 
             entries.add(entry);
         }
