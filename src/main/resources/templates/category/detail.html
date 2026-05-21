@@ -12,7 +12,7 @@
                 <h2 class="page-title" th:text="#{label.category.detail}">Category Detail</h2>
             </div>
             <div class="col-auto d-flex gap-2">
-                <a class="btn btn-secondary" th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}">Edit</a>
+                <a class="btn btn-secondary" th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}" hx-boost="true">Edit</a>
                 <form th:action="@{|/categories/${category.id}/delete|}" method="post"
                       th:onsubmit="|return confirm('#{msg.category.confirmDelete}');|">
                     <button class="btn btn-danger" type="submit" th:text="#{label.btn.delete}">Delete</button>

@@ -5,9 +5,6 @@
 >
 <head>
     <title th:text="#{label.photo.detail}">Photo Detail</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
 </head>
 
 <div layout:fragment="content">
@@ -20,7 +17,7 @@
                 <a th:if="${archived == null or !archived}"
                    class="btn btn-secondary"
                    th:href="@{|/photos/${photo.id}/edit|}"
-                   th:text="#{label.btn.edit}">Edit</a>
+                   th:text="#{label.btn.edit}" hx-boost="true">Edit</a>
 
                 <form th:if="${archived == null or !archived}"
                       th:action="@{|/photos/${photo.id}/archive|}"
@@ -62,7 +59,7 @@
                             <tr>
                                 <th th:text="#{label.category}">Category</th>
                                 <td>
-                                    <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none">
+                                    <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none" hx-boost="true">
                                         <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="${photo.category.name}">other</span>
                                     </a>
                                 </td>
@@ -73,7 +70,7 @@
                                     <span th:if="${photo.tags == null or photo.tags.isEmpty()}" th:text="'-'">-</span>
                                     <div th:if="${photo.tags != null and !photo.tags.isEmpty()}" class="badges-list">
                                         <span th:each="tag : ${photo.tags}" class="me-1">
-                                            <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
+                                            <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none" hx-boost="true">
                                                 <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
                                             </a>
                                         </span>

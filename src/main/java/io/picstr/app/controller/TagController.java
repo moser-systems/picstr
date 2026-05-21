@@ -135,7 +135,7 @@ public class TagController extends BaseController {
             tagService.delete(id);
             redirectAttributes.addFlashAttribute("success", "msg.tag.delete.success");
         } catch (DataIntegrityViolationException ex) {
-            redirectAttributes.addFlashAttribute("error", "msg.tag.delete.error.stillUsed");
+            redirectAttributes.addFlashAttribute("error", "msg.tag.delete.failed.stillUsed");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }

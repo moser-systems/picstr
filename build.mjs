@@ -6,6 +6,8 @@ const dirs = [
   'src/main/resources/static/vendor/tom-select/js',
   'src/main/resources/static/vendor/tom-select/css',
   'src/main/resources/static/vendor/leaflet',
+  'src/main/resources/static/vendor/hyperscript',
+  'src/main/resources/static/vendor/htmx',
 ];
 
 for (const dir of dirs) {
@@ -21,6 +23,8 @@ const copies = [
   ['node_modules/tom-select/dist/css/tom-select.bootstrap5.min.css', 'src/main/resources/static/vendor/tom-select/css/tom-select.bootstrap5.min.css'],
   ['node_modules/leaflet/dist/leaflet.css', 'src/main/resources/static/vendor/leaflet/leaflet.css'],
   ['node_modules/leaflet/dist/leaflet.js', 'src/main/resources/static/vendor/leaflet/leaflet.js'],
+  ['node_modules/hyperscript.org/dist/_hyperscript.min.js', 'src/main/resources/static/vendor/hyperscript/hyperscript.min.js'],
+  ['node_modules/htmx.org/dist/htmx.min.js', 'src/main/resources/static/vendor/htmx/htmx.min.js'],
 ];
 
 for (const [src, dst] of copies) {

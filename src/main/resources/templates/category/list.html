@@ -12,7 +12,9 @@
                 <h2 class="page-title" th:text="#{label.categories}">Categories</h2>
             </div>
             <div class="col-auto">
-                <a th:href="@{/categories/new}" class="btn btn-primary" th:text="#{label.btn.newCategory}">New Category</a>
+                <a th:href="@{/categories/new}" class="btn btn-primary" th:text="#{label.btn.newCategory}" hx-boost="true">
+                    New Category
+                </a>
             </div>
         </div>
     </div>
@@ -49,8 +51,14 @@
                             <th:block th:unless="${category.description}">-</th:block>
                         </td>
                         <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary me-1" th:text="#{label.btn.showPhotos}"
+                               th:href="@{|/photos/by-category/${category.name}|}" hx-boost="true">
+                                Show photos with category
+                            </a>
                             <a class="btn btn-sm btn-outline-secondary me-1"
-                               th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}">Edit</a>
+                               th:href="@{|/categories/${category.id}/edit|}" th:text="#{label.btn.edit}" hx-boost="true">
+                                Edit
+                            </a>
                             <form th:action="@{|/categories/${category.id}/delete|}" method="post"
                                   class="d-inline" th:onsubmit="|return confirm('#{msg.category.confirmDelete}');|">
                                 <button class="btn btn-sm btn-outline-danger" type="submit" th:text="#{label.btn.delete}">Delete...</button>

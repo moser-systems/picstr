@@ -12,7 +12,9 @@
                 <h2 class="page-title" th:text="#{label.tags}">Tags</h2>
             </div>
             <div class="col-auto">
-                <a th:href="@{/tags/new}" class="btn btn-primary" th:text="#{label.btn.newTag}">New Tag</a>
+                <a th:href="@{/tags/new}" class="btn btn-primary" th:text="#{label.btn.newTag}" hx-boost="true">
+                    New Tag
+                </a>
             </div>
         </div>
     </div>
@@ -49,9 +51,14 @@
                             <th:block th:unless="${tag.description}">-</th:block>
                         </td>
                         <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary me-1" th:text="#{label.btn.showPhotos}"
+                               th:href="@{|/photos/by-tag/${tag.name}|}" hx-boost="true">
+                                Show photos with tag
+                            </a>
                             <a class="btn btn-sm btn-outline-secondary me-1"
-                               th:href="@{|/tags/${tag.id}/edit|}" th:text="#{label.btn.edit}">
-                                Edit</a>
+                               th:href="@{|/tags/${tag.id}/edit|}" th:text="#{label.btn.edit}" hx-boost="true">
+                                Edit
+                            </a>
                             <form th:action="@{|/tags/${tag.id}/delete|}" method="post"
                                   class="d-inline" th:onsubmit="|return confirm('#{msg.tag.confirmDelete}');|">
                                 <button class="btn btn-sm btn-outline-danger" type="submit" th:text="#{label.btn.delete}">Delete...</button>
