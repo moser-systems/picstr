@@ -25,7 +25,7 @@
         }
     </style>
 </head>
-<body class="antialiased theme-dark">
+<body class="antialiased">
 <div class="wrapper">
     <header class="navbar navbar-expand-md sticky-top d-print-none">
         <div class="container-xl">
@@ -57,6 +57,12 @@
                                 onchange="setLanguage(this.value)">
                             <option value="en" th:selected="${#locale.language == 'en'}">English</option>
                             <option value="de" th:selected="${#locale.language == 'de'}">Deutsch</option>
+                            <option value="fr" th:selected="${#locale.language == 'fr'}">Français</option>
+                            <option value="it" th:selected="${#locale.language == 'it'}">Italiano</option>
+                            <option value="es" th:selected="${#locale.language == 'es'}">Español</option>
+                            <option value="pt" th:selected="${#locale.language == 'pt'}">Português</option>
+                            <option value="ja" th:selected="${#locale.language == 'ja'}">日本語</option>
+                            <option value="zh" th:selected="${#locale.language == 'zh'}">中文（普通话）</option>
                         </select>
                     </span>
                 </li>

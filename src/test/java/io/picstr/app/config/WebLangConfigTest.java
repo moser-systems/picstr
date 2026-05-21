@@ -26,10 +26,21 @@ class WebLangConfigTest {
     }
 
     @Test
+    void usesFrenchWhenBrowserRequestsFrench() {
+        LocaleResolver resolver = config.localeResolver();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8");
+
+        Locale locale = resolver.resolveLocale(request);
+
+        assertThat(locale).isEqualTo(Locale.FRENCH);
+    }
+
+    @Test
     void fallsBackToEnglishWhenAcceptLanguageIsUnsupported() {
         LocaleResolver resolver = config.localeResolver();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Accept-Language", "fr-FR,fr;q=0.9");
+        request.addHeader("Accept-Language", "xx-XX,xx;q=0.9");
 
         Locale locale = resolver.resolveLocale(request);
 

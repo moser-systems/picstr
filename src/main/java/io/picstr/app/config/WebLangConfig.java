@@ -13,8 +13,16 @@ import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 
 @Configuration
 public class WebLangConfig implements WebMvcConfigurer {
-
-    private static final List<Locale> SUPPORTED_LOCALES = List.of(Locale.ENGLISH, Locale.GERMAN);
+    private static final List<Locale> SUPPORTED_LOCALES = List.of(
+        Locale.ENGLISH,
+        Locale.GERMAN,
+        Locale.FRENCH,
+        Locale.ITALIAN,
+        Locale.forLanguageTag("es"), // Spanish
+        Locale.forLanguageTag("pt"), // Portuguese
+        Locale.JAPANESE,
+        Locale.SIMPLIFIED_CHINESE
+    );
 
     @Bean
     public LocaleResolver localeResolver() {
