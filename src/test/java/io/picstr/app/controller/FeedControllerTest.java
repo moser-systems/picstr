@@ -42,10 +42,9 @@ class FeedControllerTest {
             .contains("<rss")
             .contains("version=\"2.0\"")
             .contains("<title>IMG_0001.jpg</title>")
-            .contains("<link>https://picstr.example.com/assets/abc.jpg</link>")
+            .contains("<link>https://picstr.example.com/assets/thumb_abc.jpg</link>")
             .doesNotContain("/photos/")
-            .doesNotContain("thumb_")
-            .doesNotContain("<media:thumbnail");
+            .contains("thumb_");
 
         verify(photoService).recentForFeed(20);
     }
