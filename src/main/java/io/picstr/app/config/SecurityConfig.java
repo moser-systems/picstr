@@ -47,6 +47,8 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/assets/**").permitAll()
+                .requestMatchers("/vendor/**").permitAll()
+                .requestMatchers("/logo_*.png").permitAll()
                 .requestMatchers("/login**").permitAll()
                 .requestMatchers("/error**").permitAll()
                 .anyRequest().authenticated());
