@@ -1,4 +1,10 @@
+<div align="center">
+  <img src="/src/main/resources/static/logo_800x800_trans.png" width="200" />
+
 # PicStr - Picture and Photo Storage Application
+
+</div>
+
 
 A **mobile-first direct photo upload and management application** built with Spring Boot. Upload photos from a mobile device or desktop, organise them with categories and tags, view them in a responsive gallery.
 
