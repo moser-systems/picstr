@@ -48,7 +48,12 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/assets/**").permitAll()
                 .requestMatchers("/vendor/**").permitAll()
-                .requestMatchers("/logo_*.png").permitAll()
+                .requestMatchers("/*.ico").permitAll()
+                .requestMatchers("/*.png").permitAll()
+                .requestMatchers("/*.jpg").permitAll()
+                .requestMatchers("/*.svg").permitAll()
+                .requestMatchers("/*.txt").permitAll()
+                .requestMatchers("/site.webmanifest").permitAll()
                 .requestMatchers("/login**").permitAll()
                 .requestMatchers("/error**").permitAll()
                 .anyRequest().authenticated());
