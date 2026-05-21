@@ -51,8 +51,8 @@
                         <select id="tags" class="form-select" multiple th:field="*{tags}" autocomplete="off">
                             <option th:each="tag : ${allTags}"
                                     th:value="${tag.name}"
-                                    th:text="${tag.name}">
-                            </option>
+                                    th:text="${tag.name}"
+                                    th:selected="${uploadForm.tags != null and #lists.contains(uploadForm.tags, tag.name)}"></option>
                         </select>
 
                         <div class="form-hint" th:text="#{msg.tags.hint}">Select existing tags or type a new one and press Enter.</div>
