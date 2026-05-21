@@ -34,7 +34,10 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-                <a href="/" class="text-decoration-none text-reset" th:text="#{label.app.title}">PicStr</a>
+                <a href="/" class="text-decoration-none text-reset" th:title="#{label.app.title}">
+                    <img src="/logo_800x800_trans.png" alt="PicStr" class="navbar-brand-image">
+                    <span th:text="#{label.app.title}" class=""></span>
+                </a>
             </h1>
             <ul class="navbar-nav flex-row order-md-last">
                 <li class="nav-item me-2">
