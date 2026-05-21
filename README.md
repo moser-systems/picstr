@@ -5,7 +5,6 @@
 
 </div>
 
-
 A **mobile-first direct photo upload and management application** built with Spring Boot. Upload photos from a mobile device or desktop, organise them with categories and tags, view them in a responsive gallery.
 
 Quickstart:
@@ -17,7 +16,6 @@ See [Running](#running) for a quick way to run the application locally with an e
 - [Technology Stack](#technology-stack)
 - [Building](#building)
 - [Running](#running)
-- [Container Images](#container-images)
 - [Configuration Reference](#configuration-reference)
   - [Authentication (OAuth2 / OpenID Connect)](#authentication-oauth2--openid-connect)
 - [Example docker-compose](#example-docker-compose)
@@ -117,7 +115,9 @@ Flyway migrations are located in `src/main/resources/db/migration/{vendor}/`.
 
 ## Running
 
-### Local development (H2 + local storage)
+### Java / JDK
+
+#### Local development (H2 + local storage)
 
 ```bash
 ./mvnw spring-boot:run \
@@ -130,7 +130,7 @@ Flyway migrations are located in `src/main/resources/db/migration/{vendor}/`.
     --app.storage.local.base-path=./data/uploads"
 ```
 
-### Local development (MariaDB + local storage)
+#### Local development (MariaDB + local storage)
 
 ```bash
 ./mvnw spring-boot:run \
@@ -142,7 +142,7 @@ Flyway migrations are located in `src/main/resources/db/migration/{vendor}/`.
     --app.storage.type=local"
 ```
 
-### Running the packaged jar
+#### Running the packaged jar and ENV vars
 
 ```bash
 java -jar target/picstr-*.jar \
@@ -156,11 +156,7 @@ java -jar target/picstr-*.jar \
   --APP_STORAGE_S3_SECRET_KEY=minioadmin
 ```
 
----
-
-## Container Images
-
-### Pre-built runtime image
+### Container Images
 
 ####  Quick testing with H2 and local storage:
 
@@ -198,11 +194,15 @@ All values can be provided via environment variables or as Spring Boot propertie
 
 #### MariaDB / MySQL
 
+Properties:
+
 ```properties
 spring.datasource.url=${DB_URL:jdbc:mariadb://localhost:3306/picstr?createDatabaseIfNotExist=true}
 spring.datasource.username=${DB_USER:picstr}
 spring.datasource.password=${DB_PASSWORD:picstr}
 ```
+
+ENV vars:
 
 ```bash
 DB_URL=jdbc:mariadb://db:3306/picstr?createDatabaseIfNotExist=true
@@ -212,11 +212,15 @@ DB_PASSWORD=secret
 
 #### PostgreSQL
 
+Properties:
+
 ```properties
 spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/picstr}
 spring.datasource.username=${DB_USER:picstr}
 spring.datasource.password=${DB_PASSWORD:picstr}
 ```
+
+ENV vars:
 
 ```bash
 DB_URL=jdbc:postgresql://db:5432/picstr
@@ -224,18 +228,15 @@ DB_USER=picstr
 DB_PASSWORD=secret
 ```
 
-> Flyway automatically picks up migrations from `db/migration/postgresql/`.
-
 #### H2 (dev / CI / testing)
+
+Properties:
 
 ```properties
 spring.datasource.url=jdbc:h2:file:./data/picstr-dev;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
 spring.datasource.username=sa
 spring.datasource.password=
 ```
-
-> Flyway picks up migrations from `db/migration/h2/`.  
-> `MODE=MariaDB` makes H2 syntax-compatible with MariaDB queries used in the application.
 
 ---
 
@@ -279,15 +280,6 @@ APP_STORAGE_FTP_PORT=21
 APP_STORAGE_FTP_USERNAME=ftpuser
 APP_STORAGE_FTP_PASSWORD=ftppass
 APP_STORAGE_FTP_BASE_PATH=/picstr/uploads
-```
-
----
-
-### Thumbnail engine
-
-```bash
-APP_THUMBNAIL_ENGINE=graphicsmagick
-APP_THUMBNAIL_GM_SEARCH_PATH=/usr/local/bin  # override if gm is not on the default PATH
 ```
 
 ---
@@ -348,26 +340,6 @@ app.security.auth-mode=oauth2  # OpenID Connect / OAuth2 login
 app.security.auth-mode=none    # Disable authentication entirely
 ```
 
-> Legacy compatibility: `app.security.authentication-enabled=false` still forces `none` mode.
-
-### Recent Images RSS Feed (Authenticated)
-
-An RSS feed of recent uploads is available at:
-
-```text
-/feeds/recent.xml
-```
-
-- The feed is protected by Spring Security in `basic` and `oauth2` modes (not publicly accessible).
-- Item records are intentionally minimal: title, direct original asset link, GUID, publish date.
-- Thumbnail links and photo detail page links are not included.
-
-Optional limit query parameter:
-
-```text
-/feeds/recent.xml?limit=20
-```
-
 ### Disabling Authentication (Development/Testing)
 
 To disable authentication entirely (useful for development or testing), set:
@@ -388,106 +360,6 @@ Example for local development:
 ./mvnw spring-boot:run \
   -Dspring-boot.run.profiles=dev \
   -Dspring-boot.run.arguments="--app.security.auth-mode=none"
-```
-
-### Microsoft Entra ID (Azure AD) Configuration
-
-#### Step 1: Register an Application in Microsoft Entra ID
-
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to **Azure Active Directory** → **App registrations** → **New registration**
-3. Fill in the app details:
-   - **Name**: PicStr (or your preferred name)
-   - **Supported account types**: Choose based on your use case (e.g., "Accounts in this organizational directory only")
-4. Click **Register**
-
-#### Step 2: Get Client Credentials
-
-After the app is registered:
-
-1. Copy the **Application (client) ID** - you'll need this for `OIDC_CLIENT_ID`
-2. Go to **Certificates & secrets** → **New client secret**
-3. Copy the value of the generated secret - you'll need this for `OIDC_CLIENT_SECRET`
-4. (Optional) Note the **Directory (tenant) ID** for the `OIDC_TENANT_ID` environment variable
-
-#### Step 3: Configure Redirect URI
-
-1. Go to **Authentication** → **Add a platform** → **Web**
-2. Add the redirect URI:
-   - **Development**: `http://localhost:8080/login/oauth2/code/microsoft`
-   - **Production**: `https://your-domain.com/login/oauth2/code/microsoft`
-3. Enable **ID tokens** and **Access tokens** under "Implicit grant and hybrid flows"
-4. Click **Configure**
-
-#### Step 4: Run PicStr with OIDC
-
-**Option A: Local Development with Properties**
-
-Create or modify `application-oidc-microsoft.properties` with your credentials:
-
-```properties
-spring.security.oauth2.client.registration.microsoft.client-id=your-client-id
-spring.security.oauth2.client.registration.microsoft.client-secret=your-client-secret
-spring.security.oauth2.client.provider.microsoft.issuer-uri=https://login.microsoftonline.com/common/v2.0
-spring.security.oauth2.client.registration.microsoft.redirect-uri=http://localhost:8080/login/oauth2/code/microsoft
-```
-
-Then run:
-```bash
-./mvnw spring-boot:run \
-  -Dspring-boot.run.profiles=oidc-microsoft \
-  -Dspring-boot.run.arguments="\
-    --spring.datasource.url=jdbc:mariadb://localhost:3306/picstr?createDatabaseIfNotExist=true \
-    --spring.datasource.username=picstr \
-    --spring.datasource.password=picstr \
-    --app.storage.type=local"
-```
-
-**Option B: Docker / Docker Compose**
-
-```bash
-docker run -p 8080:8080 \
-  -e SPRING_PROFILES_ACTIVE=oidc-microsoft \
-  -e OIDC_CLIENT_ID=your-client-id \
-  -e OIDC_CLIENT_SECRET=your-client-secret \
-  -e OIDC_TENANT_ID=your-tenant-id \
-  -e DB_URL=jdbc:mariadb://db:3306/picstr?createDatabaseIfNotExist=true \
-  -e DB_USER=picstr \
-  -e DB_PASSWORD=secret \
-  -e APP_STORAGE_TYPE=s3 \
-  -e APP_STORAGE_S3_ENDPOINT=http://minio:9000 \
-  -e APP_STORAGE_S3_BUCKET=picstr-images \
-  -e APP_STORAGE_S3_ACCESS_KEY=minioadmin \
-  -e APP_STORAGE_S3_SECRET_KEY=minioadmin \
-  ghcr.io/moser-systems/picstr:latest
-```
-
-**Option C: Docker Compose (Recommended)**
-
-See [Example docker-compose with OIDC](#example-docker-compose-with-oidc-and-microsoft-entra-id) below for a complete setup.
-
-#### Step 5: Access PicStr
-
-1. Navigate to `http://localhost:8080`
-2. You'll be redirected to the Microsoft login page
-3. Log in with your Microsoft credentials
-4. You'll be redirected back to PicStr
-
-#### Other Supported Providers
-
-The same configuration can be adapted for other OAuth2/OIDC providers:
-
-**Google**:
-```properties
-spring.security.oauth2.client.registration.google.client-id=your-google-client-id
-spring.security.oauth2.client.registration.google.client-secret=your-google-client-secret
-```
-
-**Generic OIDC Provider**:
-```properties
-spring.security.oauth2.client.registration.myprovider.client-id=your-client-id
-spring.security.oauth2.client.registration.myprovider.client-secret=your-client-secret
-spring.security.oauth2.client.provider.myprovider.issuer-uri=https://your-provider.com/.well-known/openid-configuration
 ```
 
 ---
