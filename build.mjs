@@ -1,11 +1,11 @@
-import { copyFileSync, mkdirSync } from 'fs';
+import { copyFileSync, mkdirSync, cpSync } from 'fs';
 
 const dirs = [
   'src/main/resources/static/vendor/tabler/css',
   'src/main/resources/static/vendor/tabler/js',
   'src/main/resources/static/vendor/tom-select/js',
   'src/main/resources/static/vendor/tom-select/css',
-  'src/main/resources/static/vendor/leaflet',
+  'src/main/resources/static/vendor/leaflet/images',
   'src/main/resources/static/vendor/hyperscript',
   'src/main/resources/static/vendor/htmx',
 ];
@@ -25,9 +25,12 @@ const copies = [
   ['node_modules/leaflet/dist/leaflet.js', 'src/main/resources/static/vendor/leaflet/leaflet.js'],
   ['node_modules/hyperscript.org/dist/_hyperscript.min.js', 'src/main/resources/static/vendor/hyperscript/hyperscript.min.js'],
   ['node_modules/htmx.org/dist/htmx.min.js', 'src/main/resources/static/vendor/htmx/htmx.min.js'],
+  ['node_modules/leaflet/dist/images/', 'src/main/resources/static/vendor/leaflet/images/']
 ];
 
 for (const [src, dst] of copies) {
-  copyFileSync(src, dst);
+  cpSync(src, dst, {
+    recursive: true,
+  });
   console.log(`Copied ${src} → ${dst}`);
 }
