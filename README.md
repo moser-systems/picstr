@@ -42,8 +42,8 @@ Self-hosted and open-source, so you have full control over your data and can con
 ## Features
 
 ### Core
-- **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
 - **Camera capture** – uses for direct mobile camera access
+- **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
 - **Automatic thumbnail generation** 
 - **GPS extraction** – photos with GPS data are shown on a map view
 - **Category & tag organisation** – colour-coded badges (Tabler palette) for both categories and tags
@@ -52,6 +52,11 @@ Self-hosted and open-source, so you have full control over your data and can con
 - **Soft-delete (archive)** – photos can be archived and are excluded from all public views
 - **Restore** – archived photos can be restored to active state
 - **Archive purge** – a scheduled job permanently deletes (including storage files) archived photos older than a configurable retention window
+
+### Non-Goals
+- User management and multi-tenancy
+- Facial recognition, AI-based categorization or similar advanced features
+- Editing photos (crop, rotate, filters, etc.) — the app focuses on storage and organization
 
 ### Storage backends
 
