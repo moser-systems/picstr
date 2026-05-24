@@ -11,7 +11,7 @@
 
     <groupId>io.picstr</groupId>
     <artifactId>picstr</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>picstr</name>
     <description>Mobile-first photo upload app with metadata storage</description>
 
