@@ -32,11 +32,20 @@
     </div>
 
     <div class="page-body" th:fragment="photoCards(photos, emptyMessage)">
-        <div class="alert alert-info" th:if="${#lists.isEmpty(photos)}">
-            <span th:if="${filterType == 'category'}" th:text="#{msg.photo.list.empty.category}">No photos found for this category.</span>
-            <span th:if="${filterType == 'tag'}" th:text="#{msg.photo.list.empty.tag}">No photos found for this tag.</span>
-            <span th:if="${filterType != 'category' and filterType != 'tag'}" th:text="${emptyMessage}">No photos found.</span>
-        </div>
+        <th:block th:if="${#lists.isEmpty(photos)}" th:switch="${filterType}">
+            <th:block th:case="'category'">
+                <div th:replace="~{fragments/empty :: emptyState('category', #{msg.photo.list.empty.category}, #{msg.empty.filter}, '/photos', #{label.btn.allPhotos})}"></div>
+            </th:block>
+            <th:block th:case="'tag'">
+                <div th:replace="~{fragments/empty :: emptyState('tag', #{msg.photo.list.empty.tag}, #{msg.empty.filter}, '/photos', #{label.btn.allPhotos})}"></div>
+            </th:block>
+            <th:block th:case="'search'">
+                <div th:replace="~{fragments/empty :: emptyState('search', ${emptyMessage}, #{msg.empty.search}, '/photos/search', #{label.search.clear})}"></div>
+            </th:block>
+            <th:block th:case="*">
+                <div th:replace="~{fragments/empty :: emptyState('photo', ${emptyMessage} ?: #{msg.photo.list.empty.latest}, #{msg.empty.photos}, '/photos/upload', #{label.btn.upload})}"></div>
+            </th:block>
+        </th:block>
 
         <div class="row row-cards" th:if="${!#lists.isEmpty(photos)}">
             <!-- th:replace is processed before th:each on the same element, so the loop needs its own block -->

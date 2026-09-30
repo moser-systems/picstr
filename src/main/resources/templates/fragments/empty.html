@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Tabler empty state. icon: photo, search, archive, category, tag or map; actionUrl/actionLabel may be null. -->
+<div class="empty" th:fragment="emptyState(icon, title, subtitle, actionUrl, actionLabel)">
+    <div class="empty-icon" th:switch="${icon}">
+        <svg th:case="'search'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-search">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
+            <path d="M21 21l-6 -6" />
+        </svg>
+        <svg th:case="'archive'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-archive">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2" />
+            <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+            <path d="M10 12l4 0" />
+        </svg>
+        <svg th:case="'category'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-category">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M4 4h6v6h-6l0 -6" />
+            <path d="M14 4h6v6h-6l0 -6" />
+            <path d="M4 14h6v6h-6l0 -6" />
+            <path d="M14 17a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+        </svg>
+        <svg th:case="'tag'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-tags">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 8v4.172a2 2 0 0 0 .586 1.414l5.71 5.71a2.41 2.41 0 0 0 3.408 0l3.592 -3.592a2.41 2.41 0 0 0 0 -3.408l-5.71 -5.71a2 2 0 0 0 -1.414 -.586h-4.172a2 2 0 0 0 -2 2" />
+            <path d="M18 19l1.592 -1.592a4.82 4.82 0 0 0 0 -6.816l-4.592 -4.592" />
+            <path d="M7 10h-.01" />
+        </svg>
+        <svg th:case="'map'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-map-pin">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+        </svg>
+        <svg th:case="*" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-photo">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M15 8h.01" />
+            <path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12" />
+            <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+            <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+        </svg>
+    </div>
+    <p class="empty-title" th:text="${title}">No photos yet</p>
+    <p class="empty-subtitle text-secondary" th:if="${subtitle != null}" th:text="${subtitle}">Upload some photos.</p>
+    <div class="empty-action" th:if="${actionUrl != null}">
+        <a th:href="@{${actionUrl}}" class="btn btn-primary" hx-boost="true" th:text="${actionLabel}">Upload</a>
+    </div>
+</div>
+</body>
+</html>

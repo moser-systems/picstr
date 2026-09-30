@@ -26,8 +26,8 @@
                  th:attr="data-markers-url=@{/photos/map/markers}"></div>
         </div>
     </div>
-    <div id="photos-map-empty" class="empty mt-3 d-none">
-        <p class="empty-title" th:text="#{msg.photo.map.empty}">No photos with a location yet.</p>
+    <div id="photos-map-empty" class="mt-3 d-none">
+        <div th:replace="~{fragments/empty :: emptyState('map', #{msg.photo.map.empty}, #{msg.empty.map}, '/photos/upload', #{label.btn.upload})}"></div>
     </div>
 
     <script>

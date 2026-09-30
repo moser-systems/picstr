@@ -17,12 +17,9 @@
     </div>
 
     <div class="page-body">
-        <div class="alert alert-success" th:if="${message}" th:text="#{${message}}">Success</div>
-        <div class="alert alert-danger" th:if="${error}" th:text="${error}">Error</div>
-
-        <div class="alert alert-info" th:if="${#lists.isEmpty(photos)}" th:text="#{msg.photo.archive.empty}">
-            No archived photos.
-        </div>
+        <th:block th:if="${#lists.isEmpty(photos)}">
+            <div th:replace="~{fragments/empty :: emptyState('archive', #{msg.photo.archive.empty}, #{msg.empty.archive}, null, null)}"></div>
+        </th:block>
 
         <div class="card" th:if="${!#lists.isEmpty(photos)}">
             <div class="table-responsive">
