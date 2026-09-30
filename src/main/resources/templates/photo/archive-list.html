@@ -46,7 +46,9 @@
                         </td>
                         <td>
                             <a th:href="@{|/photos/archive/${photo.id}|}" th:title="${photo.originalFilename}">
-                                <img th:src="|/assets/${photo.thumbnailKey}|" th:alt="${photo.originalFilename}" style="max-width: 50px; max-height: 50px;" />
+                                <img th:if="${photo.processingStatus.name() == 'READY'}" th:src="|/assets/${photo.thumbnailKey}|" th:alt="${photo.originalFilename}" style="max-width: 50px; max-height: 50px;" />
+                                <span th:unless="${photo.processingStatus.name() == 'READY'}" class="badge bg-secondary-lt"
+                                      th:text="${photo.processingFailed} ? #{label.photo.processingFailed} : #{label.photo.processing}">Processing…</span>
                             </a></td>
                         <td>
                             <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none">

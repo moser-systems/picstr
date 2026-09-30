@@ -2,7 +2,6 @@ package io.picstr.app.service;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,13 +63,13 @@ public class LocalStorageService implements StorageService {
                 return Optional.empty();
             }
 
-            var bytes = Files.readAllBytes(filePath);
             var contentType = Files.probeContentType(filePath);
             if (contentType == null) {
                 contentType = "application/octet-stream";
             }
 
-            return Optional.of(new StorageObject(new ByteArrayInputStream(bytes), bytes.length, contentType));
+            // Streamed from disk; the caller closes the stream
+            return Optional.of(new StorageObject(Files.newInputStream(filePath), Files.size(filePath), contentType));
         } catch (Exception e) {
             log.error("Failed to get file from local storage: {}", key, e);
             throw new RuntimeException("Failed to get file: " + key, e);

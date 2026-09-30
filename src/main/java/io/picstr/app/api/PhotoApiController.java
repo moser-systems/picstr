@@ -92,7 +92,8 @@ public class PhotoApiController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload 1 to 20 photos",
             description = "Multipart fields: images (files), category (id or name), tags, description, latitude, longitude. "
-                    + "Returns 201 if at least one photo was stored, 400 if none.")
+                    + "Returns 201 if at least one photo was stored, 400 if none. New photos have status PROCESSING "
+                    + "until HEIC conversion and the thumbnail are done in the background (poll GET /photos/{id}).")
     public ResponseEntity<UploadResult> upload(@Valid @ModelAttribute UploadForm form) {
         var images = form.nonEmptyImages();
         if (images.isEmpty() || images.size() > UploadForm.MAX_IMAGES) {

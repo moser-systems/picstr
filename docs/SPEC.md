@@ -97,14 +97,15 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-UPL-01 | The upload form (`GET /photos/upload`) offers two file inputs: "Take photo" (`accept="image/*"`, `capture="environment"`, so mobile browsers open the rear camera) and "Choose photos" (`multiple`). The form shows how many photos are selected. |
 | FR-UPL-02 | The server accepts only files whose content type starts with `image/`. Supported formats are JPEG, PNG, GIF, WebP and HEIC/HEIF. |
 | FR-UPL-03 | One upload takes 1 to 20 photos (`UploadForm.MAX_IMAGES`). Each photo may be up to 20 MB, a whole request up to 200 MB (`UPLOAD_MAX_FILE_SIZE`, `UPLOAD_MAX_REQUEST_SIZE`). |
-| FR-UPL-04 | HEIC/HEIF files, recognised by a content type containing `heic`/`heif` or a `.heic`/`.heif` extension, are converted to JPEG with GraphicsMagick before storage. They are stored with extension `.jpg` and content type `image/jpeg`. |
+| FR-UPL-04 | HEIC/HEIF files, recognised by a content type containing `heic`/`heif` or a `.heic`/`.heif` extension, are stored as uploaded and converted to JPEG with GraphicsMagick in the background (FR-UPL-13). The JPEG then replaces the stored original (`<new uuid>.jpg`, `image/jpeg`). |
 | FR-UPL-05 | The original is stored under the key `<random UUID><original extension>`. The user's original filename is kept as metadata. If the browser sends no filename, `capture.jpg` is used. |
-| FR-UPL-06 | A thumbnail is generated for every upload: it fits within 256×256 px with the aspect ratio kept, JPEG at quality 85, stored under a key that always ends in `.jpg`: `thumb_<internal filename>` for JPEG originals, `thumb_<internal filename>.jpg` otherwise (see §8.2). |
+| FR-UPL-06 | A thumbnail is generated in the background for every upload: it fits within 256×256 px with the aspect ratio kept, JPEG at quality 85, stored under a key that always ends in `.jpg`: `thumb_<internal filename>` for JPEG originals, `thumb_<internal filename>.jpg` otherwise (see §8.2). |
 | FR-UPL-07 | If an image contains EXIF GPS data, its latitude and longitude are extracted and **override** the coordinates submitted with the form, for that image only. |
 | FR-UPL-08 | The form has a "use current location" button that fills the read-only latitude/longitude fields from the browser's Geolocation API (7 decimal places). |
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
 | FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically (2 to 100 characters, FR-TAX-02). Category and tags are checked before anything is written to storage. |
 | FR-UPL-11 | The description is optional, at most 1000 characters. |
+| FR-UPL-13 | Uploads are processed in the background: the request only validates, reads EXIF GPS, stores the original and saves the photo with status `PROCESSING`. After the transaction commits, a worker pool (`APP_PHOTO_PROCESSING_THREADS`, default 2) converts HEIC and creates the thumbnail, then sets `READY`, or `FAILED` on errors (the original is kept as uploaded; a converted copy is removed). Photos still `PROCESSING` at startup are processed again. Cards and archive rows show "Processing…"/"Processing failed" instead of the thumbnail, the detail page shows a notice, the API reports `status`, and the gallery map only shows `READY` photos. |
 | FR-UPL-12 | Category, tags, description and coordinates apply to every photo of an upload. Each photo is stored in its own transaction, so a failing file doesn't undo the others. If at least one photo was stored, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message and, if some files failed, a warning naming them; category and tags stay selected. If every file fails, the form is shown again with the errors. |
 
 ### 3.2 Gallery (GAL)
@@ -176,8 +177,8 @@ Categories and tags behave the same unless noted.
 | ID | Requirement |
 |---|---|
 | FR-JOB-01 | **Archive purge** permanently deletes archived photos whose `delete_date` is older than `app.photo.archive.retention-days` (default 30). For each photo it removes the thumbnail and original from storage, then deletes the record (including its tag links). A photo that fails is logged and retried on the next run; the others still go through. Default schedule: daily at 03:00. It is always on. |
-| FR-JOB-02 | **Missing-files detection** archives every active photo whose original or thumbnail no longer exists in storage. It only checks for existence (`StorageService.exists`) and doesn't download files. Default schedule: daily at 04:00. It can be disabled. |
-| FR-JOB-03 | **Storage reconciliation** walks every key in storage. For each original with no database record, it creates a photo in category `other`. For each original without a thumbnail, it generates one. Default schedule: daily at 04:15. It can be disabled. |
+| FR-JOB-02 | **Missing-files detection** archives every active photo whose original or thumbnail no longer exists in storage. It only checks for existence (`StorageService.exists`) and doesn't download files. Default schedule: daily at 04:00. It can be disabled. Photos that are not `READY` are skipped. |
+| FR-JOB-03 | **Storage reconciliation** walks every key in storage. For each original with no database record, it creates a photo in category `other`. For each original without a thumbnail, it generates one. Default schedule: daily at 04:15. It can be disabled. Keys whose photo is not `READY` are left to background processing. |
 | FR-JOB-04 | Every schedule is a configurable Spring cron expression (see [§10](#10-configuration--deployment)). |
 
 ---
@@ -200,7 +201,7 @@ Categories and tags behave the same unless noted.
 | NFR-03 | **Deployment.** Distributed as a container image for `linux/amd64` and `linux/arm64` on `ghcr.io/moser-systems/picstr`. |
 | NFR-04 | **Schema management.** The database schema is owned by Flyway migrations. Hibernate never changes the schema (`ddl-auto=none`). |
 | NFR-05 | **Security.** Every page except public static resources and assets requires authentication unless it is explicitly turned off (see [§9](#9-security)). |
-| NFR-06 | **Resource usage (current behaviour).** An upload is processed on the request thread: EXIF parsing, optional HEIC conversion, storage write and thumbnail generation all run in sequence. Uploaded images and storage reads are held fully in memory; the 20 MB per-photo limit caps the size of each file, and a bulk upload holds at most one photo in memory at a time. Missing-files detection only checks for existence. Reconciliation lists every key and downloads an original only when its record or thumbnail is missing. |
+| NFR-06 | **Resource usage.** The upload request holds one image at a time in memory (≤ 20 MB) for EXIF parsing and storing; HEIC conversion and thumbnails run on a bounded background pool, so slow GraphicsMagick work doesn't block requests. Local and S3 storage stream files to clients (`StorageService.get` returns an open stream the caller closes); FTP still buffers each file in memory. Missing-files detection only checks for existence; reconciliation downloads an original only when its record or thumbnail is missing. |
 | NFR-07 | **Quality gate.** CI runs the test suite on every push and pull request and reports JaCoCo coverage on PRs: at least 40 % overall and 60 % on changed files. |
 | NFR-08 | **External runtime dependency.** The GraphicsMagick `gm` binary must be installed for thumbnails and HEIC conversion. The official container image includes it. |
 | NFR-09 | **Self-contained frontend.** All scripts, styles and fonts (including the Inter font) are served from the application; pages make no requests to third-party hosts, except OpenStreetMap tiles on the photo map. |
@@ -290,29 +291,36 @@ sequenceDiagram
     actor U as User
     participant C as PhotoController
     participant P as PhotoService
-    participant H as HeicHeifConversionService
     participant S as StorageService
-    participant T as ThumbnailService
     participant R as PhotoRepository
+    participant W as PhotoProcessingService (worker pool)
+    participant H as HeicHeifConversionService
+    participant T as ThumbnailService
 
-    U->>C: POST /photos/upload (multipart)
-    C->>C: Bean Validation (UploadForm)
-    C->>P: upload(form)
-    P->>P: check content type image/*
-    P->>P: read bytes, extract EXIF GPS (overrides form lat/long)
-    opt HEIC/HEIF
-        P->>H: convertHeicToJpeg(bytes)
-        H-->>P: JPEG bytes
+    U->>C: POST /photos/upload (multipart, 1–20 images)
+    loop each image
+        C->>P: upload(image, form)
+        P->>P: check image/*, resolve category and tags, parse coordinates
+        P->>P: read bytes, extract EXIF GPS (overrides form lat/long)
+        P->>S: upload("<uuid><ext>") as uploaded
+        P->>R: save(Photo, status PROCESSING)
+        P-->>W: PhotoUploadedEvent (after commit)
     end
-    P->>S: upload("<uuid><ext>")
-    P->>T: createThumbnail(key, bytes)
-    T->>S: upload("thumb_<uuid><ext>[.jpg]")
-    P->>P: resolve category, resolve/create tags
-    P->>R: save(Photo)
-    C-->>U: upload form + success message
+    C-->>U: redirect to upload form + result message
+    W->>S: get original
+    opt HEIC/HEIF
+        W->>H: convertHeicToJpeg(bytes)
+        W->>S: upload("<new uuid>.jpg")
+    end
+    W->>T: createThumbnail(key, bytes)
+    T->>S: upload("thumb_<key>[.jpg]")
+    W->>R: save(Photo, status READY)
+    opt converted
+        W->>S: delete original HEIC
+    end
 ```
 
-`PhotoService.upload` is `@Transactional`. The storage writes are not part of that transaction: if saving the record fails, the files stay in storage, and the next reconciliation run will pick them up (FR-JOB-03).
+`PhotoService.upload` is `@Transactional`. The storage write is not part of that transaction: if saving the record fails, the file stays in storage and the next reconciliation run picks it up (FR-JOB-03). Processing starts only after the commit (`@TransactionalEventListener(AFTER_COMMIT)`), so the worker always finds the record.
 
 ### 5.5 Frontend assets
 
@@ -352,6 +360,7 @@ erDiagram
         BIGINT category_id FK
         TIMESTAMP uploaded_at
         TIMESTAMP delete_date "NULL = active"
+        VARCHAR(20) processing_status "PROCESSING, READY, FAILED"
     }
     photo_tags {
         BIGINT photo_id PK,FK
@@ -362,7 +371,7 @@ erDiagram
 | Table | Notes |
 |---|---|
 | `categories`, `tags` | `name` is NOT NULL and UNIQUE; the application also stores it lower-cased. `color` is NOT NULL. |
-| `photos` | Everything except `description`, `latitude`, `longitude` and `delete_date` is NOT NULL. `internal_filename` is unique and is the storage key of the original. `uploaded_at` is set when the record is first saved. |
+| `photos` | Everything except `description`, `latitude`, `longitude` and `delete_date` is NOT NULL. `internal_filename` is unique and is the storage key of the original. `uploaded_at` is set when the record is first saved. `processing_status` (`PROCESSING`, `READY`, `FAILED`, default `READY`) tracks background processing (V2 migration). |
 | `photo_tags` | Many-to-many join table with a composite primary key. |
 
 - Foreign keys have no `ON DELETE` actions, which is what prevents deleting a category or tag that is still in use (FR-TAX-05).
@@ -372,6 +381,7 @@ erDiagram
 ### Migrations
 
 - Location: `src/main/resources/db/migration/{h2,mariadb,postgresql}/`, chosen by Flyway's `{vendor}` placeholder. Flyway's history table is `migrations`.
+- `V2__photo_processing_status.sql` adds `photos.processing_status` (identical SQL for all three).
 - The three V1 scripts differ only in how IDs are generated (`AUTO_INCREMENT`, `GENERATED BY DEFAULT AS IDENTITY`, `BIGSERIAL`).
 - **Rule:** every schema change needs a migration in all three directories. Tests run on H2 in MariaDB mode with `ddl-auto=validate`, so the entities must match the H2 schema.
 
@@ -553,6 +563,7 @@ Every property can also be set as an environment variable. See the [README](../R
 | | `app.thumbnail.gm.search-path` | `APP_THUMBNAIL_GM_SEARCH_PATH` | `/usr/bin` |
 | Auth | `app.security.auth-mode` | `APP_SECURITY_AUTH_MODE` | `basic` |
 | API | `app.api.keys` | `APP_API_KEYS` | — (API disabled) |
+| Uploads | `app.photo.processing.threads` | `APP_PHOTO_PROCESSING_THREADS` | `2` |
 | Jobs | `app.photo.archive.retention-days` | `APP_PHOTO_ARCHIVE_RETENTION_DAYS` | `30` |
 | | `app.photo.archive.purge-cron` | `APP_PHOTO_ARCHIVE_PURGE_CRON` | `0 0 3 * * *` |
 | | `app.photo.missing-files.detection-enabled` / `-cron` | `APP_PHOTO_MISSING_FILES_DETECTION_ENABLED` / `_CRON` | `true` / `0 0 4 * * *` |
@@ -618,6 +629,6 @@ These are differences between the intended behaviour and the code, checked again
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
 | RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |
 | RM-07 | ~~Login page for `oauth2` mode~~ (done, ISS-12) | Gap (ISS-12) |
-| RM-08 | Process uploads (HEIC conversion, thumbnail) asynchronously and stream storage reads instead of buffering them | NFR-06 |
+| RM-08 | ~~Process uploads asynchronously and stream storage reads~~ (done, FR-UPL-13, NFR-06; FTP still buffers) | NFR-06 |
 | RM-09 | ~~Re-enable CSRF protection~~ (done, §9.2) | §9 |
 | RM-10 | Move to Flyway 13 once Spring Boot manages it | Dependencies |

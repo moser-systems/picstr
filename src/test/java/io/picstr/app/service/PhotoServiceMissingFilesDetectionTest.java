@@ -163,4 +163,18 @@ class PhotoServiceMissingFilesDetectionTest {
         assertThat(photoService.archivePhotosWithMissingFiles()).isZero();
         assertThat(photo.getDeleteDate()).isNull();
     }
+
+    @Test
+    void archivePhotosWithMissingFiles_skipsPhotosThatAreNotProcessedYet() {
+        var processing = new Photo();
+        processing.setInternalFilename("new.heic");
+        processing.setProcessingStatus(io.picstr.app.model.ProcessingStatus.PROCESSING);
+        var failed = new Photo();
+        failed.setInternalFilename("broken.png");
+        failed.setProcessingStatus(io.picstr.app.model.ProcessingStatus.FAILED);
+        when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(processing, failed));
+
+        assertThat(photoService.archivePhotosWithMissingFiles()).isZero();
+        org.mockito.Mockito.verifyNoInteractions(storageService);
+    }
 }
