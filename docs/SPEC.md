@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Version** | 0.2.0-SNAPSHOT |
-| **Status** | As-built baseline |
+| **Status** | As-built baseline, updated after the first improvement round |
 | **Date** | 2026-09-30 |
 
 This document describes what PicStr does and how it is built, as of the version above. Requirements carry stable IDs (`UC-`, `FR-`, `NFR-`, `ISS-`, `RM-`) so issues, pull requests and tests can refer to them. Where the implementation deviates from the intended behaviour, the deviation is recorded in [§11 Known issues](#11-known-issues--roadmap) instead of being silently papered over.
@@ -102,9 +102,9 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-UPL-07 | If the image contains EXIF GPS data, latitude and longitude are extracted and **override** any coordinates submitted with the form. |
 | FR-UPL-08 | The form has a "use current location" button that fills the read-only latitude/longitude fields from the browser's Geolocation API (7 decimal places). |
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
-| FR-UPL-10 | Tags are optional. The tag picker (Tom Select) allows up to 5 tags and creating new ones on the fly. Tag names that don't exist yet are created on the server automatically. |
+| FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically. |
 | FR-UPL-11 | The description is optional, at most 1000 characters. |
-| FR-UPL-12 | After a successful upload, the form is shown again with a success message, ready for the next photo. |
+| FR-UPL-12 | After a successful upload, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message. The chosen category and tags stay selected for the next photo. |
 
 ### 3.2 Gallery (GAL)
 
@@ -113,7 +113,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-GAL-01 | The home page (`/`) shows the 8 most recently uploaded non-archived photos and an upload button. |
 | FR-GAL-02 | `/photos` shows all non-archived photos, newest first, paginated (default page size 12). |
 | FR-GAL-03 | Every paginated view clamps `page` to ≥ 0 and `size` to 1…100. |
-| FR-GAL-04 | `/photos/by-category/{name}` filters by category name, case-insensitive (default page size 5). |
+| FR-GAL-04 | `/photos/by-category/{name}` filters by category name, case-insensitive (default page size 12). |
 | FR-GAL-05 | `/photos/by-tag/{name}` filters by tag name, case-insensitive (default page size 12). |
 | FR-GAL-06 | Photos are shown as cards in a responsive grid (1/2/3/4 columns by breakpoint), each with a square thumbnail, a category badge in the category's colour and light tag badges in the tags' colours. Badges link to the matching filter view. |
 
@@ -171,8 +171,8 @@ Categories and tags behave the same unless noted.
 
 | ID | Requirement |
 |---|---|
-| FR-JOB-01 | **Archive purge** permanently deletes archived photos whose `delete_date` is older than `app.photo.archive.retention-days` (default 30). It removes the thumbnail and original from storage, then the database records. Default schedule: daily at 03:00. It is always on. |
-| FR-JOB-02 | **Missing-files detection** archives every active photo whose original or thumbnail no longer exists in storage. Default schedule: daily at 04:00. It can be disabled. |
+| FR-JOB-01 | **Archive purge** permanently deletes archived photos whose `delete_date` is older than `app.photo.archive.retention-days` (default 30). For each photo it removes the thumbnail and original from storage, then deletes the record (including its tag links). A photo that fails is logged and retried on the next run; the others still go through. Default schedule: daily at 03:00. It is always on. |
+| FR-JOB-02 | **Missing-files detection** archives every active photo whose original or thumbnail no longer exists in storage. It only checks for existence (`StorageService.exists`) and doesn't download files. Default schedule: daily at 04:00. It can be disabled. |
 | FR-JOB-03 | **Storage reconciliation** walks every key in storage. For each original with no database record, it creates a photo in category `other`. For each original without a thumbnail, it generates one. Default schedule: daily at 04:15. It can be disabled. |
 | FR-JOB-04 | Every schedule is a configurable Spring cron expression (see [§10](#10-configuration--deployment)). |
 
@@ -187,9 +187,12 @@ Categories and tags behave the same unless noted.
 | NFR-03 | **Deployment.** Distributed as a container image for `linux/amd64` and `linux/arm64` on `ghcr.io/moser-systems/picstr`. |
 | NFR-04 | **Schema management.** The database schema is owned by Flyway migrations. Hibernate never changes the schema (`ddl-auto=none`). |
 | NFR-05 | **Security.** Every page except public static resources and assets requires authentication unless it is explicitly turned off (see [§9](#9-security)). |
-| NFR-06 | **Resource usage (current behaviour).** An upload is processed on the request thread: EXIF parsing, optional HEIC conversion, storage write and thumbnail generation all run in sequence. Uploaded images and storage reads are held fully in memory; the 20 MB upload limit caps the size of an upload. The missing-files and reconciliation jobs read every object in storage in full. |
+| NFR-06 | **Resource usage (current behaviour).** An upload is processed on the request thread: EXIF parsing, optional HEIC conversion, storage write and thumbnail generation all run in sequence. Uploaded images and storage reads are held fully in memory; the 20 MB upload limit caps the size of an upload. Missing-files detection only checks for existence. Reconciliation lists every key and downloads an original only when its record or thumbnail is missing. |
 | NFR-07 | **Quality gate.** CI runs the test suite on every push and pull request and reports JaCoCo coverage on PRs: at least 40 % overall and 60 % on changed files. |
 | NFR-08 | **External runtime dependency.** The GraphicsMagick `gm` binary must be installed for thumbnails and HEIC conversion. The official container image includes it. |
+| NFR-09 | **Self-contained frontend.** All scripts, styles and fonts (including the Inter font) are served from the application; pages make no requests to third-party hosts, except OpenStreetMap tiles on the photo map. |
+| NFR-10 | **Theming.** The UI supports light and dark mode. It follows the system setting by default; a navbar toggle overrides it and the choice is remembered in the browser. |
+| NFR-11 | **Health.** `GET /actuator/health` reports `UP`/`DOWN` without authentication and without details, for container health checks and orchestrators. No other Actuator endpoints are exposed. |
 
 ---
 
@@ -257,10 +260,10 @@ Exactly one implementation of each interface must be active, or the application 
 | Layer | Technology |
 |---|---|
 | Language / runtime | Java 25 (Eclipse Temurin) |
-| Framework | Spring Boot 4.1 (Web MVC, Security, OAuth2 Client, Data JPA, Validation) |
+| Framework | Spring Boot 4.1 (Web MVC, Security, OAuth2 Client, Data JPA, Validation, Actuator) |
 | Persistence | Hibernate; Flyway 12 migrations |
 | Views | Thymeleaf + Thymeleaf Layout Dialect |
-| Frontend | Tabler UI, htmx, hyperscript, Tom Select, Leaflet |
+| Frontend | Tabler UI 1.6, htmx, hyperscript, Tom Select, Leaflet, Inter (self-hosted) |
 | Image processing | im4java → GraphicsMagick; metadata-extractor (EXIF/GPS) |
 | Storage clients | AWS SDK v2 (S3), Apache Commons Net (FTP) |
 | Feed | ROME |
@@ -300,7 +303,7 @@ sequenceDiagram
 
 ### 5.5 Frontend assets
 
-Third-party JavaScript and CSS come from npm (`package.json`). `build.mjs` copies them into `src/main/resources/static/vendor/`. The Maven build runs `npm install` and `npm run build` automatically through the frontend-maven-plugin. Templates live in `src/main/resources/templates/`, with `layout.html` as the shared page layout.
+Third-party JavaScript, CSS and the Inter font come from npm (`package.json`). `build.mjs` copies them into `src/main/resources/static/vendor/`, where they are committed. The theme (light, dark or following the system) is handled by Tabler's `tabler-theme.js`. The Maven build runs `npm install` and `npm run build` automatically through the frontend-maven-plugin. Templates live in `src/main/resources/templates/`, with `layout.html` as the shared page layout.
 
 ---
 
@@ -427,6 +430,7 @@ Controllers pass `success`/`error`/`info`/`warning` flash attributes. If a value
 public interface StorageService {
     void upload(String key, InputStream content, long contentLength, String contentType);
     Optional<StorageObject> get(String key);   // StorageObject(content, contentLength, contentType)
+    boolean exists(String key);                // no download; default falls back to get()
     List<String> listKeys();
     void delete(String key);
 }
@@ -445,8 +449,8 @@ The jobs treat every key that does not start with `thumb_` as an original. **Do 
 
 | Backend | Behaviour |
 |---|---|
-| **S3** (`s3`, default) | AWS SDK v2 with static credentials, an optional endpoint override (for MinIO, Ceph and so on) and path-style access (on by default; turn it off for AWS). `listKeys` lists the whole bucket. A missing key returns empty. |
-| **Local** (`local`) | Files under `app.storage.local.base-path`. `get` and `delete` normalise the path and reject anything outside the base directory. `listKeys` walks the directory recursively and returns relative paths with `/`. The content type is guessed from the file. |
+| **S3** (`s3`, default) | AWS SDK v2 with static credentials, an optional endpoint override (for MinIO, Ceph and so on) and path-style access (on by default; turn it off for AWS). `listKeys` lists the whole bucket. `exists` uses `HeadObject`. A missing key returns empty. |
+| **Local** (`local`) | Files under `app.storage.local.base-path`. All operations normalise the path and reject keys outside the base directory. `listKeys` walks the directory recursively and returns relative paths with `/`. The content type is guessed from the file. |
 | **FTP** (`ftp`) | Apache Commons Net, binary mode, a new connection and login for every operation. Files live in `app.storage.ftp.base-path`, which is created if missing (one level only). `listKeys` is flat (no subdirectories). The content type is guessed from the filename. |
 
 ### 8.4 Jobs
@@ -479,7 +483,8 @@ Any other value makes startup fail.
 
 ### 9.2 Authorisation
 
-- Public in `basic`/`oauth2` modes: `/assets/**`, `/vendor/**`, root-level `*.ico`, `*.png`, `*.jpg`, `*.svg`, `*.txt`, `/site.webmanifest`, `/login**`, `/error**`.
+- Public in `basic`/`oauth2` modes: `/assets/**`, `/vendor/**`, root-level `*.ico`, `*.png`, `*.jpg`, `*.svg`, `*.txt`, `/site.webmanifest`, `/login**`, `/error**`, `/actuator/health`.
+- The `redirect` parameter of `POST /photos/{id}/restore` is only followed if it is a local path.
 - Everything else requires an authenticated user.
 - There are no roles: every authenticated user can upload, edit, archive, restore and manage categories and tags (consistent with the non-goals).
 - CSRF protection is **disabled** in all modes.
@@ -524,7 +529,7 @@ Every property can also be set as an environment variable. See the [README](../R
 ### 10.3 Build & container
 
 - `./mvnw clean package` builds the executable jar, including the frontend assets.
-- `Dockerfile.multistage` builds the jar with `maven:3-eclipse-temurin-25` (tests skipped) and runs it on `eclipse-temurin:25-jre-alpine` with `graphicsmagick` installed. The image exposes port 8080.
+- `Dockerfile.multistage` builds the jar with `maven:3-eclipse-temurin-25` (tests skipped) and runs it on `eclipse-temurin:25-jre-alpine` with `graphicsmagick` installed. The image exposes port 8080 and has a `HEALTHCHECK` against `/actuator/health`. `Containerfile` does the same from a jar built locally with `./mvnw package`.
 - `docker-compose.yml` is an example stack.
 
 ### 10.4 CI/CD (GitHub Actions)
@@ -542,24 +547,24 @@ Dependabot keeps Maven, npm, Docker and GitHub Actions dependencies up to date.
 
 ### 11.1 Known issues
 
-These are differences between the intended behaviour and the current code, checked against the source.
+These are differences between the intended behaviour and the code, checked against the source. The status column records what was fixed after the baseline; issue descriptions keep the original finding.
 
-| ID | Area | Issue |
-|---|---|---|
-| ISS-01 | Security | **Open redirect.** `POST /photos/{id}/restore` redirects to whatever `redirect` parameter it gets (`PhotoController.restore`). Because CSRF is disabled, a third-party page can trigger it. |
-| ISS-02 | Jobs | **Purge order and join table.** `PhotoService.purgeArchivedOlderThanDays` deletes storage files first and then calls `deleteAllInBatch`. That bulk delete most likely skips the `photo_tags` rows, so purging a tagged photo would fail on the foreign key and leave a record whose files are already gone. Contradicts FR-JOB-01. |
-| ISS-03 | Feed | `FeedController` calls `Date.from(photo.getUploadedAt())` before its null check. A photo without `uploaded_at` would break the feed. |
-| ISS-04 | Storage | `LocalStorageService.upload` has no path-traversal check; `get` and `delete` do. Keys are server-generated today, so it can't be exploited now, but the contract isn't enforced. |
-| ISS-05 | Security | Archived photos are hidden from every view (FR-ARC-02), but their files remain publicly reachable under `/assets/`. |
-| ISS-06 | Upload | The upload POST shows the form again instead of redirecting, so refreshing the browser can submit the same upload twice. |
-| ISS-07 | Upload | The 5-tag limit (FR-UPL-10) is enforced only in the browser. |
-| ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. |
-| ISS-09 | UI | Tabler theme CSS is loaded, but the theme script isn't included and there is no toggle, so there's no working dark mode. The PWA manifest has empty `name`/`short_name` and no `start_url`. |
-| ISS-10 | Build | `Containerfile` copies `target/app.jar`, but the pom sets no `finalName`, so the jar is called `picstr-<version>.jar`; the image also lacks GraphicsMagick. The `Makefile` calls `npm run css-build`, which doesn't exist. |
-| ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. |
-| ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. |
-| ISS-13 | Operations | There is no health endpoint (no Spring Boot Actuator) for container orchestration. |
-| ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. |
+| ID | Area | Issue | Status |
+|---|---|---|---|
+| ISS-01 | Security | **Open redirect.** `POST /photos/{id}/restore` redirects to whatever `redirect` parameter it gets (`PhotoController.restore`). Because CSRF is disabled, a third-party page can trigger it. | Fixed: only local paths are followed |
+| ISS-02 | Jobs | **Purge order and join table.** `PhotoService.purgeArchivedOlderThanDays` deletes storage files first and then calls `deleteAllInBatch`. That bulk delete most likely skips the `photo_tags` rows, so purging a tagged photo would fail on the foreign key and leave a record whose files are already gone. Contradicts FR-JOB-01. | Fixed: per-photo entity delete; failures don’t block the rest |
+| ISS-03 | Feed | `FeedController` calls `Date.from(photo.getUploadedAt())` before its null check. A photo without `uploaded_at` would break the feed. | Fixed |
+| ISS-04 | Storage | `LocalStorageService.upload` has no path-traversal check; `get` and `delete` do. Keys are server-generated today, so it can't be exploited now, but the contract isn't enforced. | Fixed: shared path guard for upload, get, delete and exists |
+| ISS-05 | Security | Archived photos are hidden from every view (FR-ARC-02), but their files remain publicly reachable under `/assets/`. | Open |
+| ISS-06 | Upload | The upload POST shows the form again instead of redirecting, so refreshing the browser can submit the same upload twice. | Fixed: POST/Redirect/GET |
+| ISS-07 | Upload | The 5-tag limit (FR-UPL-10) is enforced only in the browser. | Fixed: `@Size(max = 5)` on both forms |
+| ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. | Partly fixed: page size is now 12; name-length rules still differ |
+| ISS-09 | UI | Tabler theme CSS is loaded, but the theme script isn't included and there is no toggle, so there's no working dark mode. The PWA manifest has empty `name`/`short_name` and no `start_url`. | Fixed: theme toggle and named manifest |
+| ISS-10 | Build | `Containerfile` copies `target/app.jar`, but the pom sets no `finalName`, so the jar is called `picstr-<version>.jar`; the image also lacks GraphicsMagick. The `Makefile` calls `npm run css-build`, which doesn't exist. | Fixed |
+| ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Open |
+| ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. | Open |
+| ISS-13 | Operations | There is no health endpoint (no Spring Boot Actuator) for container orchestration. | Fixed: `/actuator/health` |
+| ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. | Open |
 
 ### 11.2 Roadmap
 
@@ -569,4 +574,9 @@ These are differences between the intended behaviour and the current code, check
 | RM-02 | Search by filename, description, category, tags and GPS coordinates | README |
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
 | RM-04 | Gallery-wide map view of all geotagged photos | Gap (ISS-14) |
-| RM-05 | Health and readiness endpoints | Gap (ISS-13) |
+| RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
+| RM-06 | Protect files of archived photos, e.g. require login or move them under an `archive/` prefix | Gap (ISS-05) |
+| RM-07 | Login page for `oauth2` mode listing the configured providers | Gap (ISS-12) |
+| RM-08 | Process uploads (HEIC conversion, thumbnail) asynchronously and stream storage reads instead of buffering them | NFR-06 |
+| RM-09 | Re-enable CSRF protection (htmx can send the token via `hx-headers`) | §9 |
+| RM-10 | Move to Flyway 13 once Spring Boot manages it | Dependencies |

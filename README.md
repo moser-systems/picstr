@@ -10,6 +10,8 @@ A **mobile-first direct photo upload and management application** built with Spr
 Quickstart:
 See [Running](#running) for a quick way to run the application locally with an embedded H2 database and local storage.
 
+For requirements, architecture and known issues, see the [Product & Technical Specification](docs/SPEC.md).
+
 ## Index
 - [Why](#why)
 - [Features](#features)
@@ -47,6 +49,8 @@ Self-hosted and open-source, so you have full control over your data and can con
 - **Automatic thumbnail generation** 
 - **GPS extraction** – photos with GPS data are shown on a map view
 - **Category & tag organisation** – colour-coded badges (Tabler palette) for both categories and tags
+- **Light and dark theme** – follows the system setting, with a toggle in the navbar
+- **No third-party requests** – scripts, styles and fonts are served by the app itself (map tiles excepted)
 
 ### Archive & lifecycle
 - **Soft-delete (archive)** – photos can be archived and are excluded from all public views
@@ -87,7 +91,7 @@ Flyway migrations are located in `src/main/resources/db/migration/{vendor}/`.
 | Persistence | Spring Data JPA + Hibernate |
 | Database migrations | Flyway 12 |
 | Templates | Thymeleaf + Thymeleaf Layout Dialect |
-| Frontend assets | Tabler UI (built via Node/npm) |
+| Frontend assets | Tabler UI 1.6, htmx, Tom Select, Leaflet, Inter font (built via Node/npm) |
 | Thumbnail engine | GraphicsMagick (via im4java) |
 | S3 client | AWS SDK v2 |
 | FTP client | Apache Commons Net |
@@ -328,6 +332,12 @@ APP_PHOTO_RECONCILE_CRON=0 15 4 * * *  # run at 4:15 AM daily (default)
 ```
 
 > To disable any job without redeploying, set its `*_ENABLED=false` environment variable.
+
+---
+
+### Health check
+
+`GET /actuator/health` returns `{"status":"UP"}` without authentication and is used by the container `HEALTHCHECK`. No other Actuator endpoints are exposed.
 
 ---
 
