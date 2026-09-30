@@ -118,6 +118,7 @@ public class PhotoController extends BaseController {
                          @RequestParam(defaultValue = "12") int size,
                          Model model) {
         addBulkOptions(model);
+        model.addAttribute("filterType", "search");
         if (!search.isEmpty()) {
             var safePage = Math.max(page, 0);
             var safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));

@@ -25,9 +25,9 @@
     </div>
 
     <div class="page-body">
-        <div class="card" th:if="${#lists.isEmpty(categories)}">
-            <div class="card-body text-muted" th:text="#{msg.category.list.empty}">No categories yet.</div>
-        </div>
+        <th:block th:if="${#lists.isEmpty(categories)}">
+            <div th:replace="~{fragments/empty :: emptyState('category', #{msg.category.list.empty}, #{msg.empty.categories}, '/categories/new', #{label.btn.newCategory})}"></div>
+        </th:block>
 
         <div class="card" th:if="${!#lists.isEmpty(categories)}">
             <div class="table-responsive">

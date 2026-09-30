@@ -25,9 +25,9 @@
     </div>
 
     <div class="page-body">
-        <div class="card" th:if="${#lists.isEmpty(tags)}">
-            <div class="card-body text-muted" th:text="#{msg.tag.list.empty}">No tags yet.</div>
-        </div>
+        <th:block th:if="${#lists.isEmpty(tags)}">
+            <div th:replace="~{fragments/empty :: emptyState('tag', #{msg.tag.list.empty}, #{msg.empty.tags}, '/tags/new', #{label.btn.newTag})}"></div>
+        </th:block>
 
         <div class="card" th:if="${!#lists.isEmpty(tags)}">
             <div class="table-responsive">
