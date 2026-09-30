@@ -19,6 +19,8 @@ import org.springframework.security.web.SecurityFilterChain;
  * - HTTP Basic authentication (app.security.auth-mode=basic)
  * - Disabled authentication (app.security.auth-mode=none)
  *
+ * CSRF protection is enabled in the basic and oauth2 modes.
+ *
  * Legacy compatibility: app.security.authentication-enabled=false forces auth-mode=none.
  */
 @Configuration
@@ -80,7 +82,8 @@ public class SecurityConfig {
             http.httpBasic(basic -> {});
         }
 
-        http.csrf(csrf -> csrf.disable());
+        // CSRF protection stays on (Spring Security default). Forms rendered with th:action get the
+        // token automatically; htmx requests get it from the _csrf meta tags in layout.html.
 
         return http.build();
     }

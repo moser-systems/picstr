@@ -46,7 +46,7 @@ Package root: `io.picstr.app` — `controller`, `service`, `repository`, `model`
 - `MissingStorageFilesDetectionJob` — archives photos whose original or thumbnail is missing from storage.
 - `StoragePhotoReconciliationJob` — walks `listKeys()`, creates `Photo` rows for orphan originals and regenerates missing thumbnails.
 
-**Security** (`SecurityConfig`): `app.security.auth-mode` = `basic` (default), `oauth2` (requires `spring.security.oauth2.client.registration.*`; see `application-oidc-microsoft.properties`), or `none`. CSRF is disabled. `/assets/**`, `/vendor/**` and `/actuator/health` (the only exposed Actuator endpoint) are public.
+**Security** (`SecurityConfig`): `app.security.auth-mode` = `basic` (default), `oauth2` (requires `spring.security.oauth2.client.registration.*`; see `application-oidc-microsoft.properties`), or `none`. CSRF protection is on (except in `none` mode): always build forms with `th:action` so the token is added, and new htmx `hx-post`/etc. requests pick it up from the `_csrf` meta tags in `layout.html`. `/assets/**`, `/vendor/**` and `/actuator/health` (the only exposed Actuator endpoint) are public.
 
 **Database**: `ddl-auto=none`; schema is owned by Flyway with per-vendor migrations in `src/main/resources/db/migration/{h2,mariadb,postgresql}/` (history table `migrations`). Any schema change needs a migration in **all three** vendor directories. Tests use in-memory H2 in MariaDB mode with `ddl-auto=validate`, so entities must match the H2 migration.
 

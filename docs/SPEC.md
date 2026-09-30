@@ -488,7 +488,7 @@ Any other value makes startup fail.
 - The `redirect` parameter of `POST /photos/{id}/restore` is only followed if it is a local path.
 - Everything else requires an authenticated user.
 - There are no roles: every authenticated user can upload, edit, archive, restore and manage categories and tags (consistent with the non-goals).
-- CSRF protection is **disabled** in all modes.
+- CSRF protection is **enabled** in `basic` and `oauth2` modes (off in `none`). Forms rendered with `th:action` carry the token automatically; `layout.html` exposes it in `_csrf`/`_csrf_header` meta tags and adds it to non-GET htmx requests. State-changing requests without a valid token get 403, so scripts that POST with only Basic credentials no longer work.
 
 ### 9.3 Asset access
 
@@ -579,5 +579,5 @@ These are differences between the intended behaviour and the code, checked again
 | RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |
 | RM-07 | ~~Login page for `oauth2` mode~~ (done, ISS-12) | Gap (ISS-12) |
 | RM-08 | Process uploads (HEIC conversion, thumbnail) asynchronously and stream storage reads instead of buffering them | NFR-06 |
-| RM-09 | Re-enable CSRF protection (htmx can send the token via `hx-headers`) | §9 |
+| RM-09 | ~~Re-enable CSRF protection~~ (done, §9.2) | §9 |
 | RM-10 | Move to Flyway 13 once Spring Boot manages it | Dependencies |
