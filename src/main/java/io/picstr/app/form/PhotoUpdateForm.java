@@ -26,5 +26,6 @@ public class PhotoUpdateForm {
     @NotBlank()
     private String category;
 
+    @Size(max = 5, message = "{msg.tags.max}")
     private List<String> tags = new ArrayList<>();
 }

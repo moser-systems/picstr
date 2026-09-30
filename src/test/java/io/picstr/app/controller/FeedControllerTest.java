@@ -77,4 +77,21 @@ class FeedControllerTest {
         photo.setUploadedAt(Instant.parse("2026-05-20T12:00:00Z"));
         return photo;
     }
+
+    @Test
+    void recentFeed_handlesPhotoWithoutUploadDate() {
+        var request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        var photo = samplePhoto();
+        photo.setUploadedAt(null);
+
+        var photoService = mock(PhotoService.class);
+        when(photoService.recentForFeed(20)).thenReturn(List.of(photo));
+
+        var response = new FeedController(photoService).recentFeed(20);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).contains("<title>IMG_0001.jpg</title>");
+    }
 }

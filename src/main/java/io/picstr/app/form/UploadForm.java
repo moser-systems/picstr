@@ -24,6 +24,7 @@ public class UploadForm {
     @Size(max = 1000)
     private String description;
 
+    @Size(max = 5, message = "{msg.tags.max}")
     private List<String> tags = new ArrayList<>();
 
     @NotBlank
