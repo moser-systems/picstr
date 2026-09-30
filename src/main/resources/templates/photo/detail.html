@@ -81,9 +81,15 @@
                 <div class="alert mb-0" th:classappend="${photo.processingFailed} ? ' alert-warning' : ' alert-info'" role="alert"
                      th:attr="hx-get=${photo.processing} ? @{|/photos/${photo.id}/processed|} : null,
                               hx-trigger=${photo.processing} ? 'every 3s' : null,
-                              hx-swap=${photo.processing} ? 'none' : null"
-                     th:text="${photo.processingFailed} ? #{msg.photo.processingFailed} : #{msg.photo.processing}">
-                    This photo is still being processed.
+                              hx-swap=${photo.processing} ? 'none' : null">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="flex-grow-1" th:text="${photo.processingFailed} ? #{msg.photo.processingFailed} : #{msg.photo.processing}">
+                            This photo is still being processed.
+                        </span>
+                        <form th:if="${photo.processingFailed}" th:action="@{|/photos/${photo.id}/retry-processing|}" method="post">
+                            <button type="submit" class="btn btn-sm btn-warning" th:text="#{label.btn.retryProcessing}">Retry processing</button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <div class="col-md-5">
