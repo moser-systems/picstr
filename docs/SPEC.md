@@ -477,7 +477,7 @@ In the `dev` profile, all three jobs run **every second** and the retention peri
 | Mode | Behaviour |
 |---|---|
 | `basic` (default) | HTTP Basic authentication. PicStr configures no users, so Spring Boot's default user applies: `user`, with a password generated at startup unless `spring.security.user.*` is set. |
-| `oauth2` | OAuth2/OpenID Connect login. Needs `spring.security.oauth2.client.registration.*`; startup fails without it. `application-oidc-microsoft.properties` is an example profile for Microsoft Entra ID (`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_TENANT_ID`). Unauthenticated pages redirect to `/login`, which lists the configured providers (each links to `/oauth2/authorization/{id}`) and shows a message after a failed sign-in (`?error`) or a sign-out (`?logout`). |
+| `oauth2` | OAuth2/OpenID Connect login. Needs `spring.security.oauth2.client.registration.*`; startup fails without it. `application-oidc-microsoft.properties` is an example profile for Microsoft Entra ID (`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_TENANT_ID`). Unauthenticated pages redirect to `/login`, which lists the configured providers (each links to `/oauth2/authorization/{id}`) and shows a message after a failed sign-in (`?error`) or a sign-out (`?logout`). Signed-in users see their name and a sign-out button in the navbar (`POST /logout`). |
 | `none` | All endpoints are public. For development only; the `dev` profile uses it. |
 
 Any other value makes startup fail.
