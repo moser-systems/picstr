@@ -135,6 +135,22 @@ public class PhotoService {
     }
 
     @Transactional(readOnly = true)
+    public List<MapMarker> mapMarkers() {
+        return photoRepository.findActiveLocations().stream()
+                .map(location -> new MapMarker(
+                        location.id(),
+                        location.latitude().doubleValue(),
+                        location.longitude().doubleValue(),
+                        location.originalFilename(),
+                        "/assets/" + ThumbnailKeys.forOriginal(location.internalFilename())))
+                .toList();
+    }
+
+    /** One photo on the gallery map, as sent to the browser. */
+    public record MapMarker(long id, double latitude, double longitude, String title, String thumbnailUrl) {
+    }
+
+    @Transactional(readOnly = true)
     public List<Photo> recentForFeed(int limit) {
         var safeLimit = Math.max(1, Math.min(limit, 100));
         var pageable = PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "uploadedAt"));

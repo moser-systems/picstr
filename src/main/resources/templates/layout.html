@@ -25,9 +25,12 @@
     <link rel="stylesheet" href="/vendor/tom-select/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="/vendor/tabler/css/tabler-vendors.min.css">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="/vendor/leaflet-markercluster/MarkerCluster.css">
+    <link rel="stylesheet" href="/vendor/leaflet-markercluster/MarkerCluster.Default.css">
     <script src="/vendor/tabler/js/tabler.min.js"></script>
     <script src="/vendor/tom-select/js/tom-select.complete.min.js"></script>
     <script src="/vendor/leaflet/leaflet.js"></script>
+    <script src="/vendor/leaflet-markercluster/leaflet.markercluster.js"></script>
     <script src="/vendor/htmx/htmx.min.js"></script>
     <script src="/vendor/hyperscript/hyperscript.min.js"></script>
 
@@ -123,6 +126,19 @@
                                 </svg>
                             </span>
                             <span class="nav-link-title" th:text="#{label.nav.photos}">Photos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" th:classappend="${currentUrl == '/photos/map'} ? ' active'">
+                        <a class="nav-link" href="/photos/map" _="on click remove .active from .active
+                                then add .active to closest <li/>" hx-boost="true">
+                            <span class="nav-link-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-map-pin">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+                                    <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+                                </svg>
+                            </span>
+                            <span class="nav-link-title" th:text="#{label.nav.map}">Map</span>
                         </a>
                     </li>
                     <li class="nav-item" th:classappend="${currentUrl == '/photos/upload'} ? ' active'">

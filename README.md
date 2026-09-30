@@ -47,7 +47,7 @@ Self-hosted and open-source, so you have full control over your data and can con
 - **Camera capture** – uses for direct mobile camera access
 - **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
 - **Automatic thumbnail generation** 
-- **GPS extraction** – photos with GPS data are shown on a map view
+- **GPS extraction** – photos with GPS data are shown on their detail page and together on a clustered gallery map (`/photos/map`)
 - **Category & tag organisation** – colour-coded badges (Tabler palette) for both categories and tags
 - **Light and dark theme** – follows the system setting, with a toggle in the navbar
 - **No third-party requests** – scripts, styles and fonts are served by the app itself (map tiles excepted)

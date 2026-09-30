@@ -78,7 +78,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | UC-01 | Capture a photo with the phone camera and upload it with category, tags, description and location | Field user | FR-UPL-* |
 | UC-02 | Browse the latest photos and the paginated gallery | Curator | FR-GAL-* |
 | UC-03 | Filter the gallery by category or tag | Curator | FR-GAL-04, FR-GAL-05 |
-| UC-04 | View a photo's details, see it on a map, download the original | Curator | FR-DET-01…04 |
+| UC-04 | View a photo's details, see it on a map, download the original; browse all photos on a map | Curator | FR-DET-01…04, FR-DET-06 |
 | UC-05 | Edit a photo's filename, description, category, tags and coordinates | Curator | FR-DET-05 |
 | UC-06 | Archive a photo, browse the archive, restore a photo | Curator | FR-ARC-* |
 | UC-07 | Subscribe to recently uploaded photos via RSS | Any | FR-FEED-* |
@@ -124,6 +124,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-DET-01 | `/photos/{id}` shows the photo with its metadata: original filename, content type, size, upload time, category, tags, description, coordinates. |
 | FR-DET-02 | The original can be downloaded under its original filename. |
 | FR-DET-03 | If both coordinates are set, a Leaflet map with OpenStreetMap tiles (zoom 15, one marker) shows the location. |
+| FR-DET-06 | `/photos/map` shows every active geotagged photo on one Leaflet/OpenStreetMap map. Nearby photos are clustered (`leaflet.markercluster`), the view fits all markers, and a marker's popup shows the thumbnail and filename linking to the detail page. Markers come from `GET /photos/map/markers` (JSON: id, latitude, longitude, title, thumbnailUrl). |
 | FR-DET-04 | The detail page offers Edit and Archive actions. Archiving asks for confirmation first. |
 | FR-DET-05 | `/photos/{id}/edit` lets the user change the original filename (required, ≤ 255), description (≤ 1000), category (required), coordinates and tags (same tag behaviour as FR-UPL-10). |
 
@@ -374,6 +375,8 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 |---|---|---|---|
 | GET | `/` | — | Home page with latest 8 photos |
 | GET | `/photos` | `page`, `size`=12 | Gallery |
+| GET | `/photos/map` | — | Gallery map (FR-DET-06) |
+| GET | `/photos/map/markers` | — | JSON markers for all active geotagged photos |
 | GET | `/photos/upload` | — | Upload form |
 | POST | `/photos/upload` | multipart `UploadForm` | Upload form again, with success or error message |
 | GET | `/photos/{id}` | — | Detail. Not found → redirect `/` with error |
@@ -565,7 +568,7 @@ These are differences between the intended behaviour and the code, checked again
 | ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Fixed: thumbnail keys always end in `.jpg`; old keys migrated at startup |
 | ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. | Fixed: `/login` page listing the configured providers |
 | ISS-13 | Operations | There is no health endpoint (no Spring Boot Actuator) for container orchestration. | Fixed: `/actuator/health` |
-| ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. | Open |
+| ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. | Partly fixed: gallery map added (FR-DET-06); database name still differs |
 
 ### 11.2 Roadmap
 
@@ -574,7 +577,7 @@ These are differences between the intended behaviour and the code, checked again
 | RM-01 | Bulk upload and bulk management (multi-select archive, re-categorise, tag) | README |
 | RM-02 | Search by filename, description, category, tags and GPS coordinates | README |
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
-| RM-04 | Gallery-wide map view of all geotagged photos | Gap (ISS-14) |
+| RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
 | RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |
 | RM-07 | ~~Login page for `oauth2` mode~~ (done, ISS-12) | Gap (ISS-12) |
