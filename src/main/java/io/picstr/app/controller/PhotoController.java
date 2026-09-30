@@ -7,6 +7,7 @@ import java.util.Locale;
 import io.picstr.app.form.PhotoSearchForm;
 import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.form.UploadForm;
+import io.picstr.app.model.Photo;
 import io.picstr.app.model.Tag;
 import io.picstr.app.service.PhotoService;
 import io.picstr.app.service.TagService;
@@ -54,6 +55,7 @@ public class PhotoController extends BaseController {
             model.addAttribute("photos", photosPage.getContent());
             model.addAttribute("pageData", photosPage);
             model.addAttribute("pageSize", photosPage.getSize());
+            addBulkOptions(model);
             return "photo/list";
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
@@ -61,13 +63,54 @@ public class PhotoController extends BaseController {
         }
     }
 
+    /** Upper limit for one bulk action; matches the largest page size. */
+    static final int MAX_BULK_PHOTOS = MAX_PAGE_SIZE;
+
+    @PostMapping("/bulk")
+    public String bulk(@RequestParam(name = "ids", required = false) List<Long> ids,
+                       @RequestParam String action,
+                       @RequestParam(required = false) String category,
+                       @RequestParam(name = "tags", required = false) List<String> tags,
+                       @RequestParam(defaultValue = "/photos") String returnTo,
+                       RedirectAttributes redirectAttributes,
+                       Locale locale) {
+        var target = "redirect:" + (isLocalPath(returnTo) ? returnTo : "/photos");
+        if (ids == null || ids.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "msg.bulk.noSelection");
+            return target;
+        }
+        if (ids.size() > MAX_BULK_PHOTOS) {
+            redirectAttributes.addFlashAttribute("error",
+                    messageSource.getMessage("msg.bulk.tooMany", new Object[] {MAX_BULK_PHOTOS}, locale));
+            return target;
+        }
+        try {
+            var result = switch (action) {
+                case "archive" -> service.bulkArchive(ids);
+                case "restore" -> service.bulkRestore(ids);
+                case "category" -> service.bulkSetCategory(ids, category);
+                case "addTags" -> service.bulkAddTags(ids, tags);
+                case "removeTags" -> service.bulkRemoveTags(ids, tags);
+                default -> throw new IllegalArgumentException("Unknown bulk action: " + action);
+            };
+            redirectAttributes.addFlashAttribute("success",
+                    messageSource.getMessage("msg.bulk." + action, new Object[] {result.changed()}, locale));
+            if (result.skipped() > 0) {
+                redirectAttributes.addFlashAttribute("warning", messageSource.getMessage("msg.bulk.tagLimit",
+                        new Object[] {result.skipped(), Photo.MAX_TAGS}, locale));
+            }
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return target;
+    }
+
     @GetMapping("/search")
     public String search(@ModelAttribute("search") PhotoSearchForm search,
                          @RequestParam(defaultValue = "0") int page,
                          @RequestParam(defaultValue = "12") int size,
                          Model model) {
-        model.addAttribute("categories", service.categories());
-        model.addAttribute("allTags", tagService.list());
+        addBulkOptions(model);
         if (!search.isEmpty()) {
             var safePage = Math.max(page, 0);
             var safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
@@ -196,6 +239,7 @@ public class PhotoController extends BaseController {
             model.addAttribute("photos", photosPage.getContent());
             model.addAttribute("pageData", photosPage);
             model.addAttribute("pageSize", photosPage.getSize());
+            addBulkOptions(model);
             model.addAttribute("filterType", "category");
             model.addAttribute("filterValue", category);
             return "photo/list";
@@ -218,6 +262,7 @@ public class PhotoController extends BaseController {
             model.addAttribute("photos", photosPage.getContent());
             model.addAttribute("pageData", photosPage);
             model.addAttribute("pageSize", photosPage.getSize());
+            addBulkOptions(model);
             model.addAttribute("filterType", "tag");
             model.addAttribute("filterValue", tag);
             return "photo/list";
@@ -263,6 +308,12 @@ public class PhotoController extends BaseController {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:" + (isLocalPath(redirect) ? redirect : "/photos/archive");
+    }
+
+    /** Categories and tags for the bulk action bar (and the search form). */
+    private void addBulkOptions(Model model) {
+        model.addAttribute("categories", service.categories());
+        model.addAttribute("allTags", tagService.list());
     }
 
     /** Only allow redirects to paths on this application, never to another host. */

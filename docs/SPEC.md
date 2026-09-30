@@ -81,6 +81,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | UC-04 | View a photo's details, see it on a map, download the original; browse all photos on a map | Curator | FR-DET-01…04, FR-DET-06 |
 | UC-05 | Edit a photo's filename, description, category, tags and coordinates | Curator | FR-DET-05 |
 | UC-06 | Archive a photo, browse the archive, restore a photo | Curator | FR-ARC-* |
+| UC-10 | Select several photos and archive, restore, re-categorise or tag them at once | Curator | FR-GAL-08 |
 | UC-07 | Subscribe to recently uploaded photos via RSS | Any | FR-FEED-* |
 | UC-08 | Create, edit and delete categories and tags | Curator | FR-TAX-* |
 | UC-09 | Configure database, storage, authentication and jobs | Operator | NFR-02, [§10](#10-configuration--deployment) |
@@ -116,6 +117,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-GAL-04 | `/photos/by-category/{name}` filters by category name, case-insensitive (default page size 12). |
 | FR-GAL-05 | `/photos/by-tag/{name}` filters by tag name, case-insensitive (default page size 12). |
 | FR-GAL-07 | `/photos/search` finds active photos by free text (filename, description, category name and tag names; case-insensitive substring, `%`/`_` matched literally), optionally narrowed by category, tag and "only with location". Results are newest first, paginated (default 12) and shown in the gallery grid with the number of matches. Without any criterion only the search form is shown. A search box in the navbar searches by text. |
+| FR-GAL-08 | Gallery cards (home, gallery, filters, search) and archive rows have a checkbox. While photos are selected, a sticky action bar shows the count, "select all"/"clear" and the bulk actions: archive (with confirmation), set category, add tags, remove tags; in the archive: restore. Actions run on at most 100 photos in one transaction (`POST /photos/bulk`) and return to the page they came from (local paths only) with a result message. Adding tags skips photos that would exceed 5 tags and says how many were skipped; new tag names follow FR-TAX-02. Archive, category and tag actions only change active photos; restore only archived ones. |
 | FR-GAL-06 | Photos are shown as cards in a responsive grid (1/2/3/4 columns by breakpoint), each with a square thumbnail, a category badge in the category's colour and light tag badges in the tags' colours. Badges link to the matching filter view. |
 
 ### 3.3 Detail & edit (DET)
@@ -389,6 +391,7 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 | GET | `/photos/by-tag/{tag}` | `page`, `size`=12 | Filtered gallery |
 | GET | `/photos/archive` | `page`, `size`=20 | Archive list |
 | GET | `/photos/archive/{id}` | — | Archived photo detail. Not found → redirect `/photos/archive` |
+| POST | `/photos/bulk` | `ids` (≤ 100), `action` (`archive`, `restore`, `category`, `addTags`, `removeTags`), `category`, `tags`, `returnTo` | Bulk action (FR-GAL-08), redirect to `returnTo` if local, else `/photos` |
 | POST | `/photos/{id}/restore` | `redirect` (default `/photos/archive`) | Redirect to `redirect` |
 
 ### 7.2 Categories and tags
@@ -576,7 +579,7 @@ These are differences between the intended behaviour and the code, checked again
 
 | ID | Item | Source |
 |---|---|---|
-| RM-01 | ~~Bulk upload~~ (done, FR-UPL-01/03/12); bulk management (multi-select archive, re-categorise, tag) still open | README |
+| RM-01 | ~~Bulk upload and bulk management~~ (done, FR-UPL-01/03/12, FR-GAL-08) | README |
 | RM-02 | ~~Search by filename, description, category and tags~~ (done, FR-GAL-07); search by GPS area still open (the gallery map covers browsing by place) | README |
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
 | RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |

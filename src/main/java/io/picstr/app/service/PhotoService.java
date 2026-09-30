@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
@@ -143,6 +144,93 @@ public class PhotoService {
     @Transactional(readOnly = true)
     public List<Photo> latest() {
         return photoRepository.findByDeleteDateIsNull(Sort.by(Sort.Direction.DESC, "uploadedAt")).stream().limit(8).toList();
+    }
+
+    /** Outcome of a bulk action: photos changed, and photos left out (e.g. because of the tag limit). */
+    public record BulkResult(int changed, int skipped) {
+    }
+
+    @Transactional
+    public BulkResult bulkArchive(List<Long> ids) {
+        int changed = 0;
+        for (var photo : activePhotos(ids)) {
+            photo.setDeleteDate(Instant.now());
+            changed++;
+        }
+        return new BulkResult(changed, 0);
+    }
+
+    @Transactional
+    public BulkResult bulkRestore(List<Long> ids) {
+        int changed = 0;
+        for (var photo : photoRepository.findAllById(ids)) {
+            if (photo.getDeleteDate() != null) {
+                photo.setDeleteDate(null);
+                changed++;
+            }
+        }
+        return new BulkResult(changed, 0);
+    }
+
+    @Transactional
+    public BulkResult bulkSetCategory(List<Long> ids, String categoryValue) {
+        var category = resolveCategory(categoryValue);
+        int changed = 0;
+        for (var photo : activePhotos(ids)) {
+            if (!category.equals(photo.getCategory())) {
+                photo.setCategory(category);
+                changed++;
+            }
+        }
+        return new BulkResult(changed, 0);
+    }
+
+    /** Adds the tags to every photo; photos that would end up with more than {@link Photo#MAX_TAGS} are skipped. */
+    @Transactional
+    public BulkResult bulkAddTags(List<Long> ids, List<String> tagNames) {
+        var tags = resolveTags(tagNames);
+        if (tags.isEmpty()) {
+            throw new IllegalArgumentException("Choose at least one tag");
+        }
+        int changed = 0;
+        int skipped = 0;
+        for (var photo : activePhotos(ids)) {
+            var combined = new LinkedHashSet<>(photo.getTags());
+            if (!combined.addAll(tags)) {
+                continue;
+            }
+            if (combined.size() > Photo.MAX_TAGS) {
+                skipped++;
+                continue;
+            }
+            photo.setTags(combined);
+            changed++;
+        }
+        return new BulkResult(changed, skipped);
+    }
+
+    @Transactional
+    public BulkResult bulkRemoveTags(List<Long> ids, List<String> tagNames) {
+        var names = tagNames == null ? Set.<String>of() : tagNames.stream()
+                .map(this::normalize)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+        if (names.isEmpty()) {
+            throw new IllegalArgumentException("Choose at least one tag");
+        }
+        int changed = 0;
+        for (var photo : activePhotos(ids)) {
+            if (photo.getTags().removeIf(tag -> names.contains(tag.getName().toLowerCase(Locale.ROOT)))) {
+                changed++;
+            }
+        }
+        return new BulkResult(changed, 0);
+    }
+
+    private List<Photo> activePhotos(List<Long> ids) {
+        return photoRepository.findAllById(ids).stream()
+                .filter(photo -> photo.getDeleteDate() == null)
+                .toList();
     }
 
     @Transactional(readOnly = true)

@@ -28,6 +28,9 @@ import lombok.Setter;
 @Table(name = "photos")
 public class Photo {
 
+    /** Maximum number of tags per photo. */
+    public static final int MAX_TAGS = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

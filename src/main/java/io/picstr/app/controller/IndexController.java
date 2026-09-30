@@ -1,6 +1,7 @@
 package io.picstr.app.controller;
 
 import io.picstr.app.service.PhotoService;
+import io.picstr.app.service.TagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,9 +17,14 @@ public class IndexController extends BaseController {
     @Autowired
     private PhotoService photoService;
 
+    @Autowired
+    private TagService tagService;
+
     @GetMapping("")
     public String index(Model model) {
         model.addAttribute("latestPhotos", photoService.latest());
+        model.addAttribute("categories", photoService.categories());
+        model.addAttribute("allTags", tagService.list());
         return "index";
     }
 }

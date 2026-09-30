@@ -41,6 +41,11 @@
         <div class="row row-cards" th:if="${!#lists.isEmpty(photos)}">
             <div class="col-sm-6 col-lg-4 col-xl-3" th:each="photo : ${photos}">
                 <div class="card card-link card-link-pop">
+                    <label class="position-absolute top-0 start-0 m-2 p-1 rounded bg-body bg-opacity-75" style="z-index: 2"
+                           th:if="${categories != null}" th:title="#{label.bulk.select}">
+                        <input type="checkbox" class="form-check-input m-0 bulk-select" name="ids" form="bulk-form"
+                               th:value="${photo.id}" th:aria-label="|#{label.bulk.select}: ${photo.originalFilename}|">
+                    </label>
                     <a th:href="@{|/photos/${photo.id}|}">
                         <div th:title="${photo.originalFilename}" class="card-img-top img-responsive img-responsive-1x1"
                              th:style="|background-image: url('/assets/${photo.thumbnailKey}')|">
@@ -63,6 +68,35 @@
                 </div>
             </div>
         </div>
+
+        <form id="bulk-form" class="card position-sticky bottom-0 mt-3 shadow d-none" style="z-index: 3"
+              th:if="${categories != null and !#lists.isEmpty(photos)}"
+              th:action="@{/photos/bulk}" method="post"
+              th:attr="data-selected-text=#{label.bulk.selected},data-confirm-archive=#{msg.bulk.confirmArchive}">
+            <input type="hidden" name="returnTo" th:value="${returnUrl}">
+            <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+                <strong class="me-1 bulk-count">0</strong>
+                <button type="button" class="btn btn-link px-1 bulk-select-all" th:text="#{label.bulk.selectAll}">Select all</button>
+                <button type="button" class="btn btn-link px-1 bulk-clear" th:text="#{label.bulk.clear}">Clear</button>
+                <button type="submit" name="action" value="archive" class="btn btn-outline-danger" th:text="#{label.bulk.archive}">Archive</button>
+                <div class="input-group w-auto">
+                    <select name="category" class="form-select" th:aria-label="#{label.category}">
+                        <option value="" th:text="#{label.category.select}">Select category</option>
+                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.capitalize(c.name)}"></option>
+                    </select>
+                    <button type="submit" name="action" value="category" class="btn btn-outline-primary" th:text="#{label.bulk.setCategory}">Set category</button>
+                </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <div style="min-width: 14rem">
+                        <select id="bulk-tags" name="tags" multiple autocomplete="off" th:aria-label="#{label.tags}">
+                            <option th:each="t : ${allTags}" th:value="${t.name}" th:text="${t.name}"></option>
+                        </select>
+                    </div>
+                    <button type="submit" name="action" value="addTags" class="btn btn-outline-primary" th:text="#{label.bulk.addTags}">Add tags</button>
+                    <button type="submit" name="action" value="removeTags" class="btn btn-outline-secondary" th:text="#{label.bulk.removeTags}">Remove tags</button>
+                </div>
+            </div>
+        </form>
 
         <div class="mt-3" th:if="${pageData != null and pageData.totalPages > 1}">
             <ul class="pagination m-0">
