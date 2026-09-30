@@ -77,7 +77,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 |---|---|---|---|
 | UC-01 | Capture a photo with the phone camera, or pick several photos at once, and upload them with category, tags, description and location | Field user | FR-UPL-* |
 | UC-02 | Browse the latest photos and the paginated gallery | Curator | FR-GAL-* |
-| UC-03 | Filter the gallery by category or tag | Curator | FR-GAL-04, FR-GAL-05 |
+| UC-03 | Filter the gallery by category or tag, or search by text | Curator | FR-GAL-04, FR-GAL-05, FR-GAL-07 |
 | UC-04 | View a photo's details, see it on a map, download the original; browse all photos on a map | Curator | FR-DET-01…04, FR-DET-06 |
 | UC-05 | Edit a photo's filename, description, category, tags and coordinates | Curator | FR-DET-05 |
 | UC-06 | Archive a photo, browse the archive, restore a photo | Curator | FR-ARC-* |
@@ -112,9 +112,10 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 |---|---|
 | FR-GAL-01 | The home page (`/`) shows the 8 most recently uploaded non-archived photos and an upload button. |
 | FR-GAL-02 | `/photos` shows all non-archived photos, newest first, paginated (default page size 12). |
-| FR-GAL-03 | Every paginated view clamps `page` to ≥ 0 and `size` to 1…100. |
+| FR-GAL-03 | Every paginated view clamps `page` to ≥ 0 and `size` to 1…100. Page links keep the other query parameters and are only shown when there is more than one page. |
 | FR-GAL-04 | `/photos/by-category/{name}` filters by category name, case-insensitive (default page size 12). |
 | FR-GAL-05 | `/photos/by-tag/{name}` filters by tag name, case-insensitive (default page size 12). |
+| FR-GAL-07 | `/photos/search` finds active photos by free text (filename, description, category name and tag names; case-insensitive substring, `%`/`_` matched literally), optionally narrowed by category, tag and "only with location". Results are newest first, paginated (default 12) and shown in the gallery grid with the number of matches. Without any criterion only the search form is shown. A search box in the navbar searches by text. |
 | FR-GAL-06 | Photos are shown as cards in a responsive grid (1/2/3/4 columns by breakpoint), each with a square thumbnail, a category badge in the category's colour and light tag badges in the tags' colours. Badges link to the matching filter view. |
 
 ### 3.3 Detail & edit (DET)
@@ -375,6 +376,7 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 |---|---|---|---|
 | GET | `/` | — | Home page with latest 8 photos |
 | GET | `/photos` | `page`, `size`=12 | Gallery |
+| GET | `/photos/search` | `q`, `category`, `tag`, `located`, `page`, `size`=12 | Search (FR-GAL-07) |
 | GET | `/photos/map` | — | Gallery map (FR-DET-06) |
 | GET | `/photos/map/markers` | — | JSON markers for all active geotagged photos |
 | GET | `/photos/upload` | — | Upload form |
@@ -575,7 +577,7 @@ These are differences between the intended behaviour and the code, checked again
 | ID | Item | Source |
 |---|---|---|
 | RM-01 | ~~Bulk upload~~ (done, FR-UPL-01/03/12); bulk management (multi-select archive, re-categorise, tag) still open | README |
-| RM-02 | Search by filename, description, category, tags and GPS coordinates | README |
+| RM-02 | ~~Search by filename, description, category and tags~~ (done, FR-GAL-07); search by GPS area still open (the gallery map covers browsing by place) | README |
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
 | RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |

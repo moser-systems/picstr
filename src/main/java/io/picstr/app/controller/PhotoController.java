@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import io.picstr.app.form.PhotoSearchForm;
 import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.form.UploadForm;
 import io.picstr.app.model.Tag;
@@ -58,6 +59,24 @@ public class PhotoController extends BaseController {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
             return "redirect:/";
         }
+    }
+
+    @GetMapping("/search")
+    public String search(@ModelAttribute("search") PhotoSearchForm search,
+                         @RequestParam(defaultValue = "0") int page,
+                         @RequestParam(defaultValue = "12") int size,
+                         Model model) {
+        model.addAttribute("categories", service.categories());
+        model.addAttribute("allTags", tagService.list());
+        if (!search.isEmpty()) {
+            var safePage = Math.max(page, 0);
+            var safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+            var photosPage = service.search(search, safePage, safeSize);
+            model.addAttribute("photos", photosPage.getContent());
+            model.addAttribute("pageData", photosPage);
+            model.addAttribute("pageSize", photosPage.getSize());
+        }
+        return "photo/search";
     }
 
     @GetMapping("/map")

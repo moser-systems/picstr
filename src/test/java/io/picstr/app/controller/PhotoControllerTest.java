@@ -161,6 +161,33 @@ class PhotoControllerTest {
         verify(photoService, never()).upload(any(), any());
     }
 
+    @Test
+    void search_showsOnlyTheFormWithoutCriteria() {
+        var controller = uploadController();
+        var model = new ExtendedModelMap();
+
+        var view = controller.search(new io.picstr.app.form.PhotoSearchForm(), 0, 12, model);
+
+        assertThat(view).isEqualTo("photo/search");
+        assertThat(model.getAttribute("pageData")).isNull();
+        verify(photoService, never()).search(any(), org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void search_clampsPagingAndAddsResults() {
+        var controller = uploadController();
+        var search = new io.picstr.app.form.PhotoSearchForm();
+        search.setQ("beach");
+        var page = new PageImpl<>(List.of(new Photo()), PageRequest.of(0, 100), 1);
+        when(photoService.search(search, 0, 100)).thenReturn(page);
+        var model = new ExtendedModelMap();
+
+        controller.search(search, -1, 500, model);
+
+        assertThat(model.getAttribute("photos")).isEqualTo(page.getContent());
+        assertThat(model.getAttribute("pageData")).isEqualTo(page);
+    }
+
     private PhotoController uploadController() {
         var controller = new PhotoController();
         ReflectionTestUtils.setField(controller, "service", photoService);
