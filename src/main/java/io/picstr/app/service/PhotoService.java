@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -59,9 +61,13 @@ public class PhotoService {
     @Autowired
     private HeicHeifConversionService conversionService;
 
+    /**
+     * Stores one image with the shared metadata of the form (category, tags, description, coordinates).
+     * Coordinates from the image's EXIF GPS data take precedence over the form's. The form is not modified,
+     * so it can be reused for the next image of a bulk upload.
+     */
     @Transactional
-    public void upload(UploadForm form) {
-        var file = form.getImage();
+    public void upload(MultipartFile file, UploadForm form) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Image is required");
         }
@@ -74,6 +80,8 @@ public class PhotoService {
         // Resolve category and tags before writing anything to storage, so invalid input leaves no files behind.
         var category = resolveCategory(form.getCategory());
         var tags = resolveTags(form.getTags());
+        var latitude = parseCoordinate(form.getLatitude());
+        var longitude = parseCoordinate(form.getLongitude());
 
         var originalFilename = StringUtils.hasText(file.getOriginalFilename()) ? file.getOriginalFilename() : "capture.jpg";
         var fileExt = getFileExtension(originalFilename);
@@ -88,8 +96,9 @@ public class PhotoService {
             var geolocation = this.readGeoLocation(new ByteArrayInputStream(imageBytes));
             if (geolocation != null) {
                 log.info("GeoLocation extracted from image: lat={}, lon={}", geolocation.getLatitude(), geolocation.getLongitude());
-                form.setLatitude(String.valueOf(geolocation.getLatitude()));
-                form.setLongitude(String.valueOf(geolocation.getLongitude()));
+                // Match the column scale (DECIMAL(10,7))
+                latitude = BigDecimal.valueOf(geolocation.getLatitude()).setScale(7, RoundingMode.HALF_UP);
+                longitude = BigDecimal.valueOf(geolocation.getLongitude()).setScale(7, RoundingMode.HALF_UP);
             }
 
             if (conversionService.isHeicOrHeif(contentType, originalFilename)) {
@@ -113,8 +122,8 @@ public class PhotoService {
         photo.setContentType(storedContentType);
         photo.setSizeBytes(bytesToStore.length);
         photo.setDescription(normalizeDescription(form.getDescription()));
-        photo.setLatitude(parseCoordinate(form.getLatitude()));
-        photo.setLongitude(parseCoordinate(form.getLongitude()));
+        photo.setLatitude(latitude);
+        photo.setLongitude(longitude);
         photo.setCategory(category);
         photo.setTags(tags);
         photoRepository.save(photo);

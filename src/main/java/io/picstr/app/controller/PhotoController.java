@@ -1,6 +1,8 @@
 package io.picstr.app.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.form.UploadForm;
@@ -10,6 +12,7 @@ import io.picstr.app.service.TagService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -34,6 +37,9 @@ public class PhotoController extends BaseController {
 
     @Autowired
     private TagService tagService;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @GetMapping("")
     public String list(@RequestParam(defaultValue = "0") int page,
@@ -79,21 +85,44 @@ public class PhotoController extends BaseController {
     public String upload(@Valid @ModelAttribute("uploadForm") UploadForm uploadForm,
                          BindingResult bindingResult,
                          Model model,
-                         RedirectAttributes redirectAttributes) {
+                         RedirectAttributes redirectAttributes,
+                         Locale locale) {
+        var images = uploadForm.nonEmptyImages();
+        if (images.isEmpty()) {
+            bindingResult.rejectValue("images", "msg.photo.images.required", "Choose at least one photo.");
+        } else if (images.size() > UploadForm.MAX_IMAGES) {
+            bindingResult.rejectValue("images", "msg.photo.images.max", new Object[] {UploadForm.MAX_IMAGES},
+                    "Too many photos.");
+        }
+
         if (!bindingResult.hasErrors()) {
-            try {
-                service.upload(uploadForm);
+            // Each image is stored in its own transaction, so one bad file doesn't undo the others.
+            var failures = new ArrayList<String>();
+            for (var image : images) {
+                try {
+                    service.upload(image, uploadForm);
+                } catch (IllegalArgumentException | IllegalStateException ex) {
+                    log.error("Failed to upload image {}", image.getOriginalFilename(), ex);
+                    failures.add(image.getOriginalFilename() + ": " + ex.getMessage());
+                }
+            }
+            var uploaded = images.size() - failures.size();
+            if (uploaded > 0) {
                 // Keep category and tags for the next capture; everything else is per photo.
                 var nextForm = new UploadForm();
                 nextForm.setCategory(uploadForm.getCategory());
                 nextForm.setTags(uploadForm.getTags());
                 redirectAttributes.addFlashAttribute("uploadForm", nextForm);
-                redirectAttributes.addFlashAttribute("success", "msg.photo.upload.success");
+                redirectAttributes.addFlashAttribute("success", images.size() == 1
+                        ? "msg.photo.upload.success"
+                        : messageSource.getMessage("msg.photo.upload.successMany", new Object[] {uploaded}, locale));
+                if (!failures.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("warning", messageSource.getMessage("msg.photo.upload.partial",
+                            new Object[] {failures.size(), String.join("; ", failures)}, locale));
+                }
                 return "redirect:/photos/upload";
-            } catch (IllegalArgumentException | IllegalStateException ex) {
-                log.error("Failed to upload image", ex);
-                bindingResult.reject("upload.failed", ex.getMessage());
             }
+            failures.forEach(failure -> bindingResult.reject("upload.failed", failure));
         }
         model.addAttribute("categories", service.categories());
         model.addAttribute("allTags", tagService.list());

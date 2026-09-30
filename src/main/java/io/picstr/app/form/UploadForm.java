@@ -3,7 +3,6 @@ package io.picstr.app.form;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -14,8 +13,11 @@ import org.springframework.web.multipart.MultipartFile;
 @Setter
 public class UploadForm {
 
-    @NotNull
-    private MultipartFile image;
+    /** Maximum number of images per upload. */
+    public static final int MAX_IMAGES = 20;
+
+    /** Files from the camera input and the multi-file picker; empty inputs arrive as empty parts. */
+    private List<MultipartFile> images = new ArrayList<>();
 
     private String latitude;
 
@@ -29,4 +31,10 @@ public class UploadForm {
 
     @NotBlank
     private String category;
+
+    public List<MultipartFile> nonEmptyImages() {
+        return images == null ? List.of() : images.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+    }
 }

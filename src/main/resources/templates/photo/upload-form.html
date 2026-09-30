@@ -21,10 +21,24 @@
                     <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}">
                         <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Error</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="image" th:text="#{label.image}">Image</label>
-                        <input id="image" type="file" class="form-control"
-                               th:field="*{image}" accept="image/*" capture="environment" required>
+                    <div class="mb-3" id="image-inputs" th:attr="data-selected-text=#{label.photo.selected}">
+                        <span class="form-label" th:text="#{label.photo.images}">Photos</span>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <label class="btn btn-primary w-100">
+                                    <span th:text="#{label.photo.takePhoto}">Take photo</span>
+                                    <input type="file" name="images" class="d-none" accept="image/*" capture="environment">
+                                </label>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="btn btn-outline-primary w-100">
+                                    <span th:text="#{label.photo.choosePhotos(${T(io.picstr.app.form.UploadForm).MAX_IMAGES})}">Choose photos</span>
+                                    <input type="file" name="images" class="d-none" accept="image/*" multiple>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text" id="image-selection"></div>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('images')}" th:errors="*{images}">Images error</div>
                     </div>
 
                     <div class="mb-3">
@@ -103,6 +117,20 @@
             maxItems: 5,
             plugins: ['remove_button']
         });
+    </script>
+    <script>
+        (() => {
+            const container = document.getElementById('image-inputs');
+            const selection = document.getElementById('image-selection');
+            const inputs = container.querySelectorAll('input[type="file"]');
+            const update = () => {
+                const files = [...inputs].flatMap((input) => [...input.files]);
+                selection.textContent = files.length === 0 ? ''
+                    : container.dataset.selectedText.replace('{0}', files.length) + ': '
+                        + files.map((file) => file.name).join(', ');
+            };
+            inputs.forEach((input) => input.addEventListener('change', update));
+        })();
     </script>
 </div>
 </html>
