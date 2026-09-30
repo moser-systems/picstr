@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
+import io.picstr.app.model.ThumbnailKeys;
+
 import lombok.extern.slf4j.Slf4j;
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.GMOperation;
@@ -22,7 +24,6 @@ public class GraphicsMagickThumbnailService implements ThumbnailService {
     static final int THUMBNAIL_WIDTH = 256;
     static final int THUMBNAIL_HEIGHT = 256;
     static final String THUMBNAIL_CONTENT_TYPE = "image/jpeg";
-    static final String THUMBNAIL_KEY_PREFIX = "thumb_";
 
     private final StorageService storageService;
     private final String gmSearchPath;
@@ -37,7 +38,7 @@ public class GraphicsMagickThumbnailService implements ThumbnailService {
 
     @Override
     public String createThumbnail(String originalKey, InputStream content, String contentType) {
-        var thumbnailKey = THUMBNAIL_KEY_PREFIX + originalKey;
+        var thumbnailKey = ThumbnailKeys.forOriginal(originalKey);
         Path inputFile = null;
         Path outputFile = null;
 

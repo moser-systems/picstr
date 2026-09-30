@@ -48,7 +48,7 @@ public class FeedController {
 
         List<SyndEntry> entries = new ArrayList<>(photos.size());
         for (Photo photo : photos) {
-            String assetUrl = baseUrl + "/assets/thumb_" + photo.getInternalFilename();
+            String assetUrl = baseUrl + "/assets/" + photo.getThumbnailKey();
             SyndEntry entry = new SyndEntryImpl();
             entry.setTitle(photo.getOriginalFilename());
             entry.setUri("photo-" + photo.getId());

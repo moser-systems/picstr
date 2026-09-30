@@ -32,31 +32,39 @@ class ArchivedAssetAuthorizationManagerTest {
 
     @Test
     void activePhotoIsPublic() {
-        when(photoRepository.existsByInternalFilenameAndDeleteDateIsNotNull("a.jpg")).thenReturn(false);
+        when(photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.jpg"))).thenReturn(false);
 
         assertThat(authorize(ANONYMOUS, "a.jpg")).isTrue();
     }
 
     @Test
     void archivedPhotoIsDeniedToAnonymousUsers() {
-        when(photoRepository.existsByInternalFilenameAndDeleteDateIsNotNull("a.jpg")).thenReturn(true);
+        when(photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.jpg"))).thenReturn(true);
 
         assertThat(authorize(ANONYMOUS, "a.jpg")).isFalse();
     }
 
     @Test
     void archivedThumbnailIsDeniedToAnonymousUsers() {
-        when(photoRepository.existsByInternalFilenameAndDeleteDateIsNotNull("a.jpg")).thenReturn(true);
+        when(photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.jpg", "a"))).thenReturn(true);
 
         assertThat(authorize(ANONYMOUS, "thumb_a.jpg")).isFalse();
-        verify(photoRepository).existsByInternalFilenameAndDeleteDateIsNotNull("a.jpg");
+        verify(photoRepository).existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.jpg", "a"));
     }
 
     @Test
     void archivedPhotoIsAllowedForLoggedInUsers() {
-        when(photoRepository.existsByInternalFilenameAndDeleteDateIsNotNull("a.jpg")).thenReturn(true);
+        when(photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.jpg", "a"))).thenReturn(true);
 
         assertThat(authorize(USER, "thumb_a.jpg")).isTrue();
+    }
+
+    @Test
+    void archivedNonJpegThumbnailIsDeniedToAnonymousUsers() {
+        when(photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(List.of("a.png.jpg", "a.png")))
+                .thenReturn(true);
+
+        assertThat(authorize(ANONYMOUS, "thumb_a.png.jpg")).isFalse();
     }
 
     private boolean authorize(Authentication authentication, String key) {

@@ -66,6 +66,7 @@ class PhotoServiceMissingFilesDetectionTest {
 
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
         when(storageService.exists("photo2.png")).thenReturn(true);
+        when(storageService.exists("thumb_photo2.png.jpg")).thenReturn(false);
         when(storageService.exists("thumb_photo2.png")).thenReturn(false);
 
         var archived = photoService.archivePhotosWithMissingFiles();
@@ -146,5 +147,20 @@ class PhotoServiceMissingFilesDetectionTest {
         assertThat(photo1.getDeleteDate()).isNotNull();
         assertThat(photo2.getDeleteDate()).isNull();
         assertThat(photo3.getDeleteDate()).isNotNull();
+    }
+
+    @Test
+    void archivePhotosWithMissingFiles_keepsPhotoWithLegacyThumbnailKey() {
+        var photo = new Photo();
+        photo.setId(9L);
+        photo.setInternalFilename("legacy.png");
+
+        when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
+        when(storageService.exists("legacy.png")).thenReturn(true);
+        when(storageService.exists("thumb_legacy.png.jpg")).thenReturn(false);
+        when(storageService.exists("thumb_legacy.png")).thenReturn(true);
+
+        assertThat(photoService.archivePhotosWithMissingFiles()).isZero();
+        assertThat(photo.getDeleteDate()).isNull();
     }
 }
