@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import io.picstr.app.form.UploadForm;
 import io.picstr.app.model.Photo;
 import io.picstr.app.service.PhotoService;
 import io.picstr.app.service.TagService;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,5 +67,31 @@ class PhotoControllerTest {
         assertThat(view).isEqualTo("redirect:/");
         assertThat(redirects.getFlashAttributes()).containsKey("error");
         assertThat(redirects.getFlashAttributes().get("error")).isEqualTo("Tag is required");
+    }
+
+    @Test
+    void upload_redirectsAfterSuccessAndKeepsCategoryAndTags() {
+        var controller = new PhotoController();
+        ReflectionTestUtils.setField(controller, "service", photoService);
+        ReflectionTestUtils.setField(controller, "tagService", tagService);
+
+        var form = new UploadForm();
+        form.setCategory("travel");
+        form.setTags(List.of("beach"));
+        form.setDescription("sunset");
+        var bindingResult = new BeanPropertyBindingResult(form, "uploadForm");
+        var model = new ExtendedModelMap();
+        var redirects = new RedirectAttributesModelMap();
+
+        var view = controller.upload(form, bindingResult, model, redirects);
+
+        assertThat(view).isEqualTo("redirect:/photos/upload");
+        verify(photoService).upload(form);
+        var nextForm = (UploadForm) redirects.getFlashAttributes().get("uploadForm");
+        assertThat(nextForm.getCategory()).isEqualTo("travel");
+        assertThat(nextForm.getTags()).containsExactly("beach");
+        assertThat(nextForm.getDescription()).isNull();
+        assertThat(nextForm.getImage()).isNull();
+        assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("msg.photo.upload.success");
     }
 }

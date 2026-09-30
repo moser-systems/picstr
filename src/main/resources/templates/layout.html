@@ -13,14 +13,16 @@
     <link rel="icon" type="image/png" sizes="16x16" th:href="@{/favicon-16x16.png}" href="/favicon-16x16.png">
     <link rel="shortcut icon" th:href="@{/favicon.ico}" href="/favicon.ico">
     <link rel="manifest" th:href="@{/site.webmanifest}" href="/site.webmanifest">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151f2c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="PicStr">
+    <link rel="stylesheet" href="/vendor/inter/inter.css">
     <link rel="stylesheet" href="/vendor/tabler/css/tabler.min.css">
     <link rel="stylesheet" href="/vendor/tabler/css/tabler-themes.min.css">
     <link rel="stylesheet" href="/vendor/tom-select/css/tom-select.bootstrap5.min.css">
+    <link rel="stylesheet" href="/vendor/tabler/css/tabler-vendors.min.css">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
-    <link href="https://fonts.cdnfonts.com/css/inter" rel="stylesheet">
     <script src="/vendor/tabler/js/tabler.min.js"></script>
     <script src="/vendor/tom-select/js/tom-select.complete.min.js"></script>
     <script src="/vendor/leaflet/leaflet.js"></script>
@@ -29,14 +31,12 @@
 
     <style>
         :root {
-            --tblr-font-sans-serif: "Inter", sans-serif;
-        }
-        .ts-dropdown {
-            background-color: #fff;
+            --tblr-font-sans-serif: "Inter Variable", sans-serif;
         }
     </style>
 </head>
 <body class="antialiased">
+<script src="/vendor/tabler/js/tabler-theme.min.js"></script>
 <div class="wrapper">
     <header class="navbar navbar-expand-md sticky-top d-print-none">
         <div class="container-xl">
@@ -52,6 +52,21 @@
                 </a>
             </h1>
             <ul class="navbar-nav flex-row order-md-last">
+                <li class="nav-item me-2">
+                    <a href="?theme=dark" class="nav-link px-0 hide-theme-dark" th:title="#{label.theme.dark}" th:aria-label="#{label.theme.dark}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-moon">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008" />
+                        </svg>
+                    </a>
+                    <a href="?theme=light" class="nav-link px-0 hide-theme-light" th:title="#{label.theme.light}" th:aria-label="#{label.theme.light}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-sun">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                            <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" />
+                        </svg>
+                    </a>
+                </li>
                 <li class="nav-item me-2">
                     <span class="nav-link">
                         <span class="nav-link-icon">
