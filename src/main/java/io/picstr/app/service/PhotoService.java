@@ -19,6 +19,7 @@ import com.drew.metadata.exif.GpsDirectory;
 import io.picstr.app.form.UploadForm;
 import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.model.Category;
+import io.picstr.app.model.NameRules;
 import io.picstr.app.model.Photo;
 import io.picstr.app.model.Tag;
 import io.picstr.app.model.ThumbnailKeys;
@@ -70,6 +71,10 @@ public class PhotoService {
             throw new IllegalArgumentException("Only image uploads are allowed");
         }
 
+        // Resolve category and tags before writing anything to storage, so invalid input leaves no files behind.
+        var category = resolveCategory(form.getCategory());
+        var tags = resolveTags(form.getTags());
+
         var originalFilename = StringUtils.hasText(file.getOriginalFilename()) ? file.getOriginalFilename() : "capture.jpg";
         var fileExt = getFileExtension(originalFilename);
         var randomizedFilename = UUID.randomUUID();
@@ -110,8 +115,8 @@ public class PhotoService {
         photo.setDescription(normalizeDescription(form.getDescription()));
         photo.setLatitude(parseCoordinate(form.getLatitude()));
         photo.setLongitude(parseCoordinate(form.getLongitude()));
-        photo.setCategory(resolveCategory(form.getCategory()));
-        photo.setTags(resolveTags(form.getTags()));
+        photo.setCategory(category);
+        photo.setTags(tags);
         photoRepository.save(photo);
     }
 
@@ -352,8 +357,9 @@ public class PhotoService {
             if (!StringUtils.hasText(normalized)) {
                 continue;
             }
+            // Existing tags are reused as they are; only new names must follow the naming rules.
             var tag = tagRepository.findByNameIgnoreCase(normalized)
-                    .orElseGet(() -> tagRepository.save(new Tag(normalized)));
+                    .orElseGet(() -> tagRepository.save(new Tag(NameRules.normalize("Tag", normalized))));
             result.add(tag);
         }
 

@@ -3,6 +3,7 @@ package io.picstr.app.service;
 import java.util.List;
 import java.util.Locale;
 
+import io.picstr.app.model.NameRules;
 import io.picstr.app.model.Tag;
 import io.picstr.app.repository.TagRepository;
 import org.springframework.data.domain.Page;
@@ -88,10 +89,7 @@ public class TagService {
     }
 
     private String normalize(String value) {
-        if (!StringUtils.hasText(value)) {
-            throw new IllegalArgumentException("Tag name is required");
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
+        return NameRules.normalize("Tag", value);
     }
 
     private String normalizeDescription(String value) {

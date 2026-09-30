@@ -27,6 +27,7 @@
                                th:field="*{name}"
                                th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'"
                                class="form-control"
+                               minlength="2"
                                maxlength="100"
                                th:placeholder="#{label.placeholder.tag}"
                                required>

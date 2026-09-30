@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 import io.picstr.app.model.Category;
+import io.picstr.app.model.NameRules;
 import io.picstr.app.repository.CategoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -86,10 +87,7 @@ public class CategoryService {
     }
 
     private String normalize(String value) {
-        if (!StringUtils.hasText(value)) {
-            throw new IllegalArgumentException("Category name is required");
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
+        return NameRules.normalize("Category", value);
     }
 
     private String normalizeDescription(String value) {
