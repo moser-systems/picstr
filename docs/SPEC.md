@@ -182,6 +182,15 @@ Categories and tags behave the same unless noted.
 
 ---
 
+### 3.9 REST API (API)
+
+| ID | Requirement |
+|---|---|
+| FR-API-01 | A JSON REST API under `/api/v1` offers the same operations as the UI: list/search photos, archived photos, photo locations, photo details, original and thumbnail download, upload (1–20 images), metadata update, archive, restore, bulk actions, and full management of categories and tags. The same validation rules apply. |
+| FR-API-02 | API clients authenticate with an API key configured in `APP_API_KEYS` (comma-separated), sent as `Authorization: Bearer <key>` or `X-API-Key: <key>`. Web logins (Basic, session) are not accepted on `/api/**`; without configured keys the API rejects every request. In auth mode `none` the API is open. |
+| FR-API-03 | Errors are RFC 9457 problem responses: 400 for invalid input (with an `errors` map for field validation), 401 without a valid key, 404 for unknown photos/categories/tags, 409 when deleting a category or tag that is still in use. |
+| FR-API-04 | An OpenAPI description is served at `/api-docs` and Swagger UI at `/api-docs/ui`, both behind the normal web login. |
+
 ## 4. Non-functional requirements
 
 | ID | Requirement |
@@ -425,7 +434,25 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 | `CategoryForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette (FR-TAX-03) |
 | `TagForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette |
 
-### 7.5 Flash messages
+### 7.5 REST API
+
+All paths below `/api/v1`; see `/api-docs/ui` for the full schema.
+
+| Method | Path | Result |
+|---|---|---|
+| GET | `/photos?q&category&tag&located&page&size` | Page of active photos (default size 20, max 100) |
+| GET | `/photos/archived?page&size` | Page of archived photos |
+| GET | `/photos/locations` | Markers of all active geotagged photos |
+| GET | `/photos/{id}` | Photo (active or archived; `archived` flag) |
+| GET | `/photos/{id}/file`, `/photos/{id}/thumbnail` | Original or JPEG thumbnail, also for archived photos |
+| POST | `/photos` (multipart) | Upload: 201 with `created` and `failed` lists, 400 if nothing was stored |
+| PUT | `/photos/{id}` (JSON) | Replace metadata (fields as `PhotoUpdateForm`) |
+| POST | `/photos/{id}/archive`, `/photos/{id}/restore` | 204 |
+| POST | `/photos/bulk` (JSON `ids`, `action`, `category`, `tags`) | `{changed, skipped}` |
+| GET, POST | `/categories`, `/tags` | List (sorted by name), create (201 + `Location`) |
+| GET, PUT, DELETE | `/categories/{id}`, `/tags/{id}` | Get, update, delete (409 if in use) |
+
+### 7.6 Flash messages
 
 Controllers pass `success`/`error`/`info`/`warning` flash attributes. If a value starts with `msg.`, the layout looks it up in the message bundle; otherwise it shows the text as is (for example, exception messages from services).
 
@@ -498,7 +525,11 @@ Any other value makes startup fail.
 - There are no roles: every authenticated user can upload, edit, archive, restore and manage categories and tags (consistent with the non-goals).
 - CSRF protection is **enabled** in `basic` and `oauth2` modes (off in `none`). Forms rendered with `th:action` carry the token automatically; `layout.html` exposes it in `_csrf`/`_csrf_header` meta tags and adds it to non-GET htmx requests. State-changing requests without a valid token get 403, so scripts that POST with only Basic credentials no longer work.
 
-### 9.3 Asset access
+### 9.3 API authentication
+
+`/api/**` has its own security chain: API keys from `APP_API_KEYS`, compared in constant time; stateless (no session cookie), no CSRF (no cookies involved), 401 with `WWW-Authenticate: Bearer` instead of a login redirect. Keys grant full access, like a web user. Archived photos' files are available to API clients through `/api/v1/photos/{id}/file|thumbnail`; `/assets/**` keeps using the web login.
+
+### 9.4 Asset access
 
 `/assets/**` is public so that thumbnails and originals can be embedded and linked (for example, from the RSS feed) without authentication. Storage keys are random UUIDs, so they can't be guessed. The exception is archived photos: `ArchivedAssetAuthorizationManager` requires a logged-in user for their original and thumbnail, so archiving a photo also revokes anonymous access to its files. Assets are sent with `Cache-Control: private`, so shared caches don't keep copies after a photo is archived; a browser that already downloaded a file may keep it for up to a day.
 
@@ -521,6 +552,7 @@ Every property can also be set as an environment variable. See the [README](../R
 | Images | `app.thumbnail.engine` | `APP_THUMBNAIL_ENGINE` | `graphicsmagick` |
 | | `app.thumbnail.gm.search-path` | `APP_THUMBNAIL_GM_SEARCH_PATH` | `/usr/bin` |
 | Auth | `app.security.auth-mode` | `APP_SECURITY_AUTH_MODE` | `basic` |
+| API | `app.api.keys` | `APP_API_KEYS` | — (API disabled) |
 | Jobs | `app.photo.archive.retention-days` | `APP_PHOTO_ARCHIVE_RETENTION_DAYS` | `30` |
 | | `app.photo.archive.purge-cron` | `APP_PHOTO_ARCHIVE_PURGE_CRON` | `0 0 3 * * *` |
 | | `app.photo.missing-files.detection-enabled` / `-cron` | `APP_PHOTO_MISSING_FILES_DETECTION_ENABLED` / `_CRON` | `true` / `0 0 4 * * *` |
@@ -581,7 +613,7 @@ These are differences between the intended behaviour and the code, checked again
 |---|---|---|
 | RM-01 | ~~Bulk upload and bulk management~~ (done, FR-UPL-01/03/12, FR-GAL-08) | README |
 | RM-02 | ~~Search by filename, description, category and tags~~ (done, FR-GAL-07); search by GPS area still open (the gallery map covers browsing by place) | README |
-| RM-03 | API endpoints for integration with other applications and mobile clients | README |
+| RM-03 | ~~API endpoints for integration with other applications and mobile clients~~ (done, FR-API-*) | README |
 | RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
 | RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |

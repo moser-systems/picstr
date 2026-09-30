@@ -1,9 +1,15 @@
 package io.picstr.app.config;
 
+import java.util.List;
+
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -40,7 +46,39 @@ public class SecurityConfig {
         this.archivedAssetAuthorizationManager = archivedAssetAuthorizationManager;
     }
 
+    /**
+     * The REST API under /api/** authenticates with API keys (app.api.keys) instead of the web login: no
+     * session, no CSRF (no cookies are involved) and 401 instead of a login redirect. In auth mode none the
+     * API is open like the rest of the application.
+     */
     @Bean
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http,
+                                              @Value("${app.api.keys:}") List<String> apiKeys) throws Exception {
+        http.securityMatcher("/api/**")
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .requestCache(cache -> cache.disable())
+            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, ex) -> {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setHeader("WWW-Authenticate", "Bearer");
+                response.setContentType("application/problem+json");
+                response.getWriter().write("{\"title\":\"Unauthorized\",\"status\":401,"
+                        + "\"detail\":\"A valid API key is required (Authorization: Bearer <key>).\"}");
+            }));
+
+        if (resolveAuthMode() == AuthMode.NONE) {
+            http.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
+        }
+
+        http.addFilterBefore(new ApiKeyAuthenticationFilter(apiKeys), AnonymousAuthenticationFilter.class)
+            .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         AuthMode resolvedMode = resolveAuthMode();
 

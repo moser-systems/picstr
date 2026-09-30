@@ -38,7 +38,7 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public Category get(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Category not found: " + id));
     }
 
     @Transactional
@@ -81,7 +81,7 @@ public class CategoryService {
     @Transactional
     public void delete(Long id) {
         if (!categoryRepository.existsById(id)) {
-            throw new IllegalArgumentException("Category not found: " + id);
+            throw new NotFoundException("Category not found: " + id);
         }
         categoryRepository.deleteById(id);
     }
