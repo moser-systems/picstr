@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Spring Security configuration for the Picstr application.
  * Protects all controller endpoints except /assets/** and /actuator/health which are publicly accessible.
+ * Assets of archived photos are the exception: they require authentication (see ArchivedAssetAuthorizationManager).
  *
  * Supports authentication via:
  * - OAuth2/OpenID Connect (app.security.auth-mode=oauth2)
@@ -29,8 +30,12 @@ public class SecurityConfig {
 
     private final ClientRegistrationRepository clientRegistrationRepository;
 
-    public SecurityConfig(ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) {
+    private final ArchivedAssetAuthorizationManager archivedAssetAuthorizationManager;
+
+    public SecurityConfig(ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
+                          ArchivedAssetAuthorizationManager archivedAssetAuthorizationManager) {
         this.clientRegistrationRepository = clientRegistrationRepositoryProvider.getIfAvailable();
+        this.archivedAssetAuthorizationManager = archivedAssetAuthorizationManager;
     }
 
     @Bean
@@ -46,6 +51,7 @@ public class SecurityConfig {
         }
 
         http.authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/assets/{key}").access(archivedAssetAuthorizationManager)
                 .requestMatchers("/assets/**").permitAll()
                 .requestMatchers("/vendor/**").permitAll()
                 .requestMatchers("/*.ico").permitAll()

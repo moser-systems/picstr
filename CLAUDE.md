@@ -34,10 +34,10 @@ Thumbnail generation shells out to GraphicsMagick (`gm`, searched in `app.thumbn
 Package root: `io.picstr.app` — `controller`, `service`, `repository`, `model`, `config`. Controllers use server-rendered Thymeleaf views in `src/main/resources/templates/{photo,category,tag}/` with `layout.html` as the shared layout; view controllers extend `BaseController` (adds `currentUrl` and `activeProfile` model attributes).
 
 **Pluggable beans selected by property** (`@ConditionalOnProperty`), not by profile:
-- `StorageService` (upload/get/exists/listKeys/delete over flat string keys; use `exists` rather than `get` when only presence matters — jobs rely on it to avoid downloads) → `S3StorageService` (+ `S3Config`), `LocalStorageService` (+ `LocalUploadWebConfig`), `FtpStorageService`, chosen by `app.storage.type` (`s3` default, `local`, `ftp`). `DummyStorageService` is not a bean.
+- `StorageService` (upload/get/exists/listKeys/delete over flat string keys; use `exists` rather than `get` when only presence matters — jobs rely on it to avoid downloads) → `S3StorageService` (+ `S3Config`), `LocalStorageService`, `FtpStorageService`, chosen by `app.storage.type` (`s3` default, `local`, `ftp`).
 - `ThumbnailService` → `GraphicsMagickThumbnailService` via `app.thumbnail.engine=graphicsmagick`.
 
-**Storage key convention** (relied on by several services): originals are stored as `<UUID><ext>` (= `Photo.internalFilename`); thumbnails are stored in the same backend as `thumb_<internalFilename>`. Any key not starting with `thumb_` is treated as an original. Files are served via `PhotoAssetController` at `/assets/{key}` (for `local` storage, `LocalUploadWebConfig` maps `/assets/**` directly to the filesystem). `/assets/**` is public even when auth is on.
+**Storage key convention** (relied on by several services): originals are stored as `<UUID><ext>` (= `Photo.internalFilename`); thumbnails are stored in the same backend as `thumb_<internalFilename>`. Any key not starting with `thumb_` is treated as an original. Files are served only via `PhotoAssetController` at `/assets/{key}`, for every backend. `/assets/**` is public even when auth is on, except files of archived photos, which `ArchivedAssetAuthorizationManager` (wired in `SecurityConfig`) restricts to logged-in users.
 
 **Upload flow** (`PhotoService.upload`): validate `image/*` → extract EXIF GPS (metadata-extractor) into lat/long → convert HEIC/HEIF to JPEG (`HeicHeifConversionService`) → store original → create thumbnail → persist `Photo`. Categories and tags are resolved/created by name.
 

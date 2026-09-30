@@ -53,7 +53,7 @@ Self-hosted and open-source, so you have full control over your data and can con
 - **No third-party requests** – scripts, styles and fonts are served by the app itself (map tiles excepted)
 
 ### Archive & lifecycle
-- **Soft-delete (archive)** – photos can be archived and are excluded from all public views
+- **Soft-delete (archive)** – photos can be archived; they are excluded from all views and their files are only served to logged-in users
 - **Restore** – archived photos can be restored to active state
 - **Archive purge** – a scheduled job permanently deletes (including storage files) archived photos older than a configurable retention window
 

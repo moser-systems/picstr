@@ -250,7 +250,7 @@ Pluggable components are selected with `@ConditionalOnProperty`, not with Spring
 
 | Interface | Property | Implementations |
 |---|---|---|
-| `StorageService` | `app.storage.type` | `s3` → `S3StorageService` (+ `S3Config`), `local` → `LocalStorageService` (+ `LocalUploadWebConfig`), `ftp` → `FtpStorageService` |
+| `StorageService` | `app.storage.type` | `s3` → `S3StorageService` (+ `S3Config`), `local` → `LocalStorageService`, `ftp` → `FtpStorageService` |
 | `ThumbnailService` | `app.thumbnail.engine` | `graphicsmagick` → `GraphicsMagickThumbnailService` |
 
 Exactly one implementation of each interface must be active, or the application fails to start.
@@ -405,7 +405,7 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 | Method | Path | Result |
 |---|---|---|
 | GET | `/feed/recent.xml`, `/feeds/recent.xml` | RSS 2.0 (`application/rss+xml`), `limit`=20 (1…100) |
-| GET | `/assets/{key}` | The stored object. Content type comes from storage (fallback `application/octet-stream`), with `Content-Length` and `Cache-Control: max-age=86400, public`. Keys containing `..` or `\`, or starting with `/` or `file:`, return 404, as do missing objects. |
+| GET | `/assets/{key}` | The stored object. Content type comes from storage (fallback `application/octet-stream`), with `Content-Length` and `Cache-Control: max-age=86400, private`. Files of archived photos (original or thumbnail) require authentication; anonymous requests get the login challenge (401 in `basic` mode). Keys containing `..` or `\`, or starting with `/` or `file:`, return 404, as do missing objects. |
 
 ### 7.4 Forms and validation
 
@@ -491,7 +491,7 @@ Any other value makes startup fail.
 
 ### 9.3 Asset access
 
-`/assets/**` is public so that thumbnails and originals can be embedded and linked (for example, from the RSS feed) without authentication. Storage keys are random UUIDs, so they can't be guessed, but anyone who has a URL can open it — including URLs of archived photos (ISS-05).
+`/assets/**` is public so that thumbnails and originals can be embedded and linked (for example, from the RSS feed) without authentication. Storage keys are random UUIDs, so they can't be guessed. The exception is archived photos: `ArchivedAssetAuthorizationManager` requires a logged-in user for their original and thumbnail, so archiving a photo also revokes anonymous access to its files. Assets are sent with `Cache-Control: private`, so shared caches don't keep copies after a photo is archived; a browser that already downloaded a file may keep it for up to a day.
 
 ---
 
@@ -555,7 +555,7 @@ These are differences between the intended behaviour and the code, checked again
 | ISS-02 | Jobs | **Purge order and join table.** `PhotoService.purgeArchivedOlderThanDays` deletes storage files first and then calls `deleteAllInBatch`. That bulk delete most likely skips the `photo_tags` rows, so purging a tagged photo would fail on the foreign key and leave a record whose files are already gone. Contradicts FR-JOB-01. | Fixed: per-photo entity delete; failures don’t block the rest |
 | ISS-03 | Feed | `FeedController` calls `Date.from(photo.getUploadedAt())` before its null check. A photo without `uploaded_at` would break the feed. | Fixed |
 | ISS-04 | Storage | `LocalStorageService.upload` has no path-traversal check; `get` and `delete` do. Keys are server-generated today, so it can't be exploited now, but the contract isn't enforced. | Fixed: shared path guard for upload, get, delete and exists |
-| ISS-05 | Security | Archived photos are hidden from every view (FR-ARC-02), but their files remain publicly reachable under `/assets/`. | Open |
+| ISS-05 | Security | Archived photos are hidden from every view (FR-ARC-02), but their files remain publicly reachable under `/assets/`. | Fixed: archived files require login; assets cached as `private` |
 | ISS-06 | Upload | The upload POST shows the form again instead of redirecting, so refreshing the browser can submit the same upload twice. | Fixed: POST/Redirect/GET |
 | ISS-07 | Upload | The 5-tag limit (FR-UPL-10) is enforced only in the browser. | Fixed: `@Size(max = 5)` on both forms |
 | ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. | Partly fixed: page size is now 12; name-length rules still differ |
@@ -575,7 +575,7 @@ These are differences between the intended behaviour and the code, checked again
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
 | RM-04 | Gallery-wide map view of all geotagged photos | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
-| RM-06 | Protect files of archived photos, e.g. require login or move them under an `archive/` prefix | Gap (ISS-05) |
+| RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |
 | RM-07 | Login page for `oauth2` mode listing the configured providers | Gap (ISS-12) |
 | RM-08 | Process uploads (HEIC conversion, thumbnail) asynchronously and stream storage reads instead of buffering them | NFR-06 |
 | RM-09 | Re-enable CSRF protection (htmx can send the token via `hx-headers`) | §9 |
