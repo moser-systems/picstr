@@ -17,6 +17,8 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151f2c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="PicStr">
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
     <link rel="stylesheet" href="/vendor/inter/inter.css">
     <link rel="stylesheet" href="/vendor/tabler/css/tabler.min.css">
     <link rel="stylesheet" href="/vendor/tabler/css/tabler-themes.min.css">
@@ -297,6 +299,15 @@
     </div>
 </div>
 <script>
+    // Send the CSRF token with htmx requests that change state (hx-post, hx-put, ...)
+    document.addEventListener('htmx:configRequest', (event) => {
+        const token = document.querySelector('meta[name="_csrf"]');
+        const header = document.querySelector('meta[name="_csrf_header"]');
+        if (token && header && event.detail.verb !== 'get') {
+            event.detail.headers[header.content] = token.content;
+        }
+    });
+
     function setLanguage(lang) {
         const url = new URL(window.location.href);
         url.searchParams.set('lang', lang);
