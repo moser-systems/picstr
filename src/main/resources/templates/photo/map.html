@@ -13,6 +13,10 @@
             <div class="col">
                 <h2 class="page-title" th:text="#{label.photo.map.all}">Photo Map</h2>
             </div>
+            <div class="col-auto">
+                <a id="photos-map-search" class="btn btn-outline-primary" th:href="@{/photos/search}"
+                   th:text="#{label.map.searchArea}">Search this area</a>
+            </div>
         </div>
     </div>
 
@@ -49,6 +53,22 @@
                 link.append(img, title);
                 return link;
             };
+
+            // Open the search for the visible part of the map
+            const wrap = (lng) => ((lng + 180) % 360 + 360) % 360 - 180;
+            const round = (v) => Math.round(v * 100000) / 100000;
+            document.getElementById('photos-map-search').addEventListener('click', (event) => {
+                event.preventDefault();
+                const bounds = map.getBounds();
+                const wholeWorld = bounds.getEast() - bounds.getWest() >= 360;
+                const params = new URLSearchParams({
+                    north: round(Math.min(bounds.getNorth(), 90)),
+                    south: round(Math.max(bounds.getSouth(), -90)),
+                    west: wholeWorld ? -180 : round(wrap(bounds.getWest())),
+                    east: wholeWorld ? 180 : round(wrap(bounds.getEast()))
+                });
+                window.location.href = `${event.currentTarget.href}?${params}`;
+            });
 
             fetch(container.dataset.markersUrl, {headers: {'Accept': 'application/json'}})
                 .then((response) => response.json())
