@@ -11,7 +11,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Spring Security configuration for the Picstr application.
- * Protects all controller endpoints except /assets/** which is publicly accessible.
+ * Protects all controller endpoints except /assets/** and /actuator/health which are publicly accessible.
  *
  * Supports authentication via:
  * - OAuth2/OpenID Connect (app.security.auth-mode=oauth2)
@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/site.webmanifest").permitAll()
                 .requestMatchers("/login**").permitAll()
                 .requestMatchers("/error**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated());
 
         if (resolvedMode == AuthMode.OAUTH2) {
