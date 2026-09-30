@@ -80,4 +80,17 @@ class PhotoServiceTest {
         verify(photoRepository, never()).delete(broken);
         verify(photoRepository).delete(ok);
     }
+
+    @Test
+    void mapMarkers_buildsMarkersWithThumbnailUrls() {
+        when(photoRepository.findActiveLocations()).thenReturn(List.of(
+                new io.picstr.app.model.PhotoLocation(1L, new java.math.BigDecimal("47.3769"), new java.math.BigDecimal("8.5417"), "a.jpg", "IMG_1.jpg"),
+                new io.picstr.app.model.PhotoLocation(2L, new java.math.BigDecimal("-33.8688"), new java.math.BigDecimal("151.2093"), "b.png", "beach.png")));
+
+        var markers = photoService.mapMarkers();
+
+        assertThat(markers).containsExactly(
+                new PhotoService.MapMarker(1L, 47.3769, 8.5417, "IMG_1.jpg", "/assets/thumb_a.jpg"),
+                new PhotoService.MapMarker(2L, -33.8688, 151.2093, "beach.png", "/assets/thumb_b.png.jpg"));
+    }
 }

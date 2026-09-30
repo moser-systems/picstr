@@ -124,4 +124,15 @@ class PhotoControllerTest {
         assertThat(PhotoController.isLocalPath("https://evil.example")).isFalse();
         assertThat(PhotoController.isLocalPath(null)).isFalse();
     }
+
+    @Test
+    void mapMarkers_returnsMarkersFromService() {
+        var controller = new PhotoController();
+        ReflectionTestUtils.setField(controller, "service", photoService);
+        var markers = List.of(new PhotoService.MapMarker(1L, 47.0, 8.0, "IMG_1.jpg", "/assets/thumb_a.jpg"));
+        when(photoService.mapMarkers()).thenReturn(markers);
+
+        assertThat(controller.map()).isEqualTo("photo/map");
+        assertThat(controller.mapMarkers()).isEqualTo(markers);
+    }
 }

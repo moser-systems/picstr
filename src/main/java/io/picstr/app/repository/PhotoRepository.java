@@ -1,6 +1,7 @@
 package io.picstr.app.repository;
 
 import io.picstr.app.model.Photo;
+import io.picstr.app.model.PhotoLocation;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface PhotoRepository extends JpaRepository<Photo, Long> {
 
@@ -37,4 +39,8 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
 	Optional<Photo> findByInternalFilename(String internalFilename);
 
 	boolean existsByInternalFilenameInAndDeleteDateIsNotNull(Collection<String> internalFilenames);
+
+	@Query("select new io.picstr.app.model.PhotoLocation(p.id, p.latitude, p.longitude, p.internalFilename, p.originalFilename)"
+			+ " from Photo p where p.deleteDate is null and p.latitude is not null and p.longitude is not null")
+	List<PhotoLocation> findActiveLocations();
 }

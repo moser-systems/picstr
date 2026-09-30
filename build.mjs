@@ -6,6 +6,7 @@ const dirs = [
   'src/main/resources/static/vendor/tom-select/js',
   'src/main/resources/static/vendor/tom-select/css',
   'src/main/resources/static/vendor/leaflet/images',
+  'src/main/resources/static/vendor/leaflet-markercluster',
   'src/main/resources/static/vendor/hyperscript',
   'src/main/resources/static/vendor/htmx',
   'src/main/resources/static/vendor/inter/files',
@@ -28,6 +29,9 @@ const copies = [
   ['node_modules/hyperscript.org/dist/_hyperscript.min.js', 'src/main/resources/static/vendor/hyperscript/hyperscript.min.js'],
   ['node_modules/htmx.org/dist/htmx.min.js', 'src/main/resources/static/vendor/htmx/htmx.min.js'],
   ['node_modules/leaflet/dist/images/', 'src/main/resources/static/vendor/leaflet/images/'],
+  ['node_modules/leaflet.markercluster/dist/leaflet.markercluster.js', 'src/main/resources/static/vendor/leaflet-markercluster/leaflet.markercluster.js'],
+  ['node_modules/leaflet.markercluster/dist/MarkerCluster.css', 'src/main/resources/static/vendor/leaflet-markercluster/MarkerCluster.css'],
+  ['node_modules/leaflet.markercluster/dist/MarkerCluster.Default.css', 'src/main/resources/static/vendor/leaflet-markercluster/MarkerCluster.Default.css'],
   ['node_modules/@fontsource-variable/inter/index.css', 'src/main/resources/static/vendor/inter/inter.css'],
 ];
 

@@ -140,6 +140,7 @@
     </div>
 
     <script th:if="${photo.latitude != null and photo.longitude != null}">
+        (() => {
         const mapContainer = document.getElementById('photo-map');
         const latitude = Number(mapContainer.dataset.latitude);
         const longitude = Number(mapContainer.dataset.longitude);
@@ -150,6 +151,7 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
         L.marker([latitude, longitude]).addTo(map);
+        })();
     </script>
 </div>
 </html>

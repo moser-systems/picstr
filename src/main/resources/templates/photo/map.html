@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
+>
+<head>
+    <title th:text="#{label.nav.map}">Map</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-header mt-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title" th:text="#{label.photo.map.all}">Photo Map</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body p-0">
+            <div id="photos-map" style="height: 70vh; min-height: 320px;"
+                 th:attr="data-markers-url=@{/photos/map/markers}"></div>
+        </div>
+    </div>
+    <div id="photos-map-empty" class="empty mt-3 d-none">
+        <p class="empty-title" th:text="#{msg.photo.map.empty}">No photos with a location yet.</p>
+    </div>
+
+    <script>
+        (() => {
+            const container = document.getElementById('photos-map');
+            const map = L.map(container).setView([20, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Built with DOM APIs, not HTML strings: titles are user-supplied filenames.
+            const popup = (marker) => {
+                const link = document.createElement('a');
+                link.href = `/photos/${marker.id}`;
+                const img = document.createElement('img');
+                img.src = marker.thumbnailUrl;
+                img.alt = marker.title;
+                img.style.maxWidth = '160px';
+                img.className = 'd-block rounded mb-1';
+                const title = document.createElement('span');
+                title.textContent = marker.title;
+                link.append(img, title);
+                return link;
+            };
+
+            fetch(container.dataset.markersUrl, {headers: {'Accept': 'application/json'}})
+                .then((response) => response.json())
+                .then((markers) => {
+                    if (markers.length === 0) {
+                        document.getElementById('photos-map-empty').classList.remove('d-none');
+                        return;
+                    }
+                    const cluster = L.markerClusterGroup();
+                    markers.forEach((marker) => {
+                        cluster.addLayer(L.marker([marker.latitude, marker.longitude]).bindPopup(() => popup(marker)));
+                    });
+                    map.addLayer(cluster);
+                    map.fitBounds(cluster.getBounds(), {padding: [32, 32], maxZoom: 15});
+                });
+        })();
+    </script>
+</div>
+</html>
