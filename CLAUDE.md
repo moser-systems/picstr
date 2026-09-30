@@ -56,7 +56,7 @@ Package root: `io.picstr.app` — `controller`, `service`, `repository`, `model`
 
 ## Tests
 
-Tests are plain JUnit 5 + Mockito unit tests (`@ExtendWith(MockitoExtension.class)`), not Spring context tests. Controllers are instantiated directly and field-injected dependencies are set with `ReflectionTestUtils.setField`.
+Most tests are plain JUnit 5 + Mockito unit tests (`@ExtendWith(MockitoExtension.class)`). Query logic is tested with `@DataJpaTest` against H2 and the real Flyway schema (see `PhotoSearchRepositoryTest`). `src/test/resources/application.properties` replaces the main properties file in tests, so settings the tests need (e.g. the Flyway locations) must be repeated there. Controllers are instantiated directly and field-injected dependencies are set with `ReflectionTestUtils.setField`.
 
 ## Frontend assets
 

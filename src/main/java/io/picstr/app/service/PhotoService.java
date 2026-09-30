@@ -18,6 +18,7 @@ import com.drew.lang.GeoLocation;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.GpsDirectory;
 import io.picstr.app.form.UploadForm;
+import io.picstr.app.form.PhotoSearchForm;
 import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.model.Category;
 import io.picstr.app.model.NameRules;
@@ -26,6 +27,7 @@ import io.picstr.app.model.Tag;
 import io.picstr.app.model.ThumbnailKeys;
 import io.picstr.app.repository.CategoryRepository;
 import io.picstr.app.repository.PhotoRepository;
+import io.picstr.app.repository.PhotoSpecifications;
 import io.picstr.app.repository.TagRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,6 +143,12 @@ public class PhotoService {
     @Transactional(readOnly = true)
     public List<Photo> latest() {
         return photoRepository.findByDeleteDateIsNull(Sort.by(Sort.Direction.DESC, "uploadedAt")).stream().limit(8).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Photo> search(PhotoSearchForm search, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadedAt"));
+        return photoRepository.findAll(PhotoSpecifications.matching(search), pageable);
     }
 
     @Transactional(readOnly = true)
