@@ -34,7 +34,7 @@ Thumbnail generation shells out to GraphicsMagick (`gm`, searched in `app.thumbn
 Package root: `io.picstr.app` — `controller`, `service`, `repository`, `model`, `config`. Controllers use server-rendered Thymeleaf views in `src/main/resources/templates/{photo,category,tag}/` with `layout.html` as the shared layout; view controllers extend `BaseController` (adds `currentUrl` and `activeProfile` model attributes).
 
 **Pluggable beans selected by property** (`@ConditionalOnProperty`), not by profile:
-- `StorageService` (upload/get/listKeys/delete over flat string keys) → `S3StorageService` (+ `S3Config`), `LocalStorageService` (+ `LocalUploadWebConfig`), `FtpStorageService`, chosen by `app.storage.type` (`s3` default, `local`, `ftp`). `DummyStorageService` is not a bean.
+- `StorageService` (upload/get/exists/listKeys/delete over flat string keys; use `exists` rather than `get` when only presence matters — jobs rely on it to avoid downloads) → `S3StorageService` (+ `S3Config`), `LocalStorageService` (+ `LocalUploadWebConfig`), `FtpStorageService`, chosen by `app.storage.type` (`s3` default, `local`, `ftp`). `DummyStorageService` is not a bean.
 - `ThumbnailService` → `GraphicsMagickThumbnailService` via `app.thumbnail.engine=graphicsmagick`.
 
 **Storage key convention** (relied on by several services): originals are stored as `<UUID><ext>` (= `Photo.internalFilename`); thumbnails are stored in the same backend as `thumb_<internalFilename>`. Any key not starting with `thumb_` is treated as an original. Files are served via `PhotoAssetController` at `/assets/{key}` (for `local` storage, `LocalUploadWebConfig` maps `/assets/**` directly to the filesystem). `/assets/**` is public even when auth is on.
@@ -46,7 +46,7 @@ Package root: `io.picstr.app` — `controller`, `service`, `repository`, `model`
 - `MissingStorageFilesDetectionJob` — archives photos whose original or thumbnail is missing from storage.
 - `StoragePhotoReconciliationJob` — walks `listKeys()`, creates `Photo` rows for orphan originals and regenerates missing thumbnails.
 
-**Security** (`SecurityConfig`): `app.security.auth-mode` = `basic` (default), `oauth2` (requires `spring.security.oauth2.client.registration.*`; see `application-oidc-microsoft.properties`), or `none`. CSRF is disabled.
+**Security** (`SecurityConfig`): `app.security.auth-mode` = `basic` (default), `oauth2` (requires `spring.security.oauth2.client.registration.*`; see `application-oidc-microsoft.properties`), or `none`. CSRF is disabled. `/assets/**`, `/vendor/**` and `/actuator/health` (the only exposed Actuator endpoint) are public.
 
 **Database**: `ddl-auto=none`; schema is owned by Flyway with per-vendor migrations in `src/main/resources/db/migration/{h2,mariadb,postgresql}/` (history table `migrations`). Any schema change needs a migration in **all three** vendor directories. Tests use in-memory H2 in MariaDB mode with `ddl-auto=validate`, so entities must match the H2 migration.
 
@@ -60,4 +60,6 @@ Tests are plain JUnit 5 + Mockito unit tests (`@ExtendWith(MockitoExtension.clas
 
 ## Frontend assets
 
-Vendor assets (Tabler, tom-select, Leaflet, htmx, hyperscript) come from npm and are copied into `src/main/resources/static/vendor/` by `build.mjs`; edit `package.json`/`build.mjs` rather than the copied files.
+Vendor assets (Tabler, tom-select, Leaflet, htmx, hyperscript, Inter font) come from npm and are copied into `src/main/resources/static/vendor/` by `build.mjs`; the copies are committed, so re-run `npm run build` and commit the result after changing `package.json`. Pages must not load anything from third-party hosts (map tiles excepted). Templates use Tabler 1.6 class names (`.form-text`, `.badge-list`); dark mode comes from `tabler-theme.js`, so use Tabler colour tokens instead of hard-coded colours. View helpers live in `io.picstr.app.view` (e.g. `${@fmt.bytes(...)}`).
+
+See `docs/SPEC.md` for requirement IDs (`FR-*`, `NFR-*`) and the known-issues list.
