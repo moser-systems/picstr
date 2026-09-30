@@ -133,6 +133,44 @@ public class FtpStorageService implements StorageService {
     }
 
     @Override
+    public boolean exists(String key) {
+        FTPClient ftpClient = new FTPClient();
+        try {
+            var ftpProps = properties.getFtp();
+
+            ftpClient.connect(ftpProps.getHost(), ftpProps.getPort());
+            int replyCode = ftpClient.getReplyCode();
+            if (!FTPReply.isPositiveCompletion(replyCode)) {
+                throw new RuntimeException("FTP server refused connection. Reply code: " + replyCode);
+            }
+
+            if (!ftpClient.login(ftpProps.getUsername(), ftpProps.getPassword())) {
+                throw new RuntimeException("Failed to login to FTP server");
+            }
+
+            if (!ftpClient.changeWorkingDirectory(ftpProps.getBasePath())) {
+                return false;
+            }
+
+            return List.of(ftpClient.listFiles(key))
+                    .stream()
+                    .anyMatch(file -> file.isFile());
+        } catch (Exception e) {
+            log.error("Failed to check file in FTP storage: {}", key, e);
+            throw new RuntimeException("Failed to check file: " + key, e);
+        } finally {
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+            } catch (Exception e) {
+                log.error("Failed to close FTP connection", e);
+            }
+        }
+    }
+
+    @Override
     public List<String> listKeys() {
         FTPClient ftpClient = new FTPClient();
         try {

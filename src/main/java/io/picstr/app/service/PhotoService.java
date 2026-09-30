@@ -242,8 +242,8 @@ public class PhotoService {
         int archivedCount = 0;
         for (var photo : activePhotos) {
             var internalFilename = photo.getInternalFilename();
-            var originalExists = storageService.get(internalFilename).isPresent();
-            var thumbnailExists = storageService.get(THUMBNAIL_KEY_PREFIX + internalFilename).isPresent();
+            var originalExists = storageService.exists(internalFilename);
+            var thumbnailExists = storageService.exists(THUMBNAIL_KEY_PREFIX + internalFilename);
 
             // Archive if either the original or thumbnail is missing
             if (!originalExists || !thumbnailExists) {
@@ -275,6 +275,13 @@ public class PhotoService {
             }
 
             try {
+                var hasRecord = photoRepository.findByInternalFilename(key).isPresent();
+                var thumbnailKey = THUMBNAIL_KEY_PREFIX + key;
+                var hasThumbnail = storageService.exists(thumbnailKey);
+                if (hasRecord && hasThumbnail) {
+                    continue;
+                }
+
                 var originalObject = storageService.get(key).orElse(null);
                 if (originalObject == null || !originalObject.contentType().toLowerCase(Locale.ROOT).startsWith("image/")) {
                     continue;
@@ -282,7 +289,7 @@ public class PhotoService {
 
                 var bytes = originalObject.content().readAllBytes();
 
-                if (photoRepository.findByInternalFilename(key).isEmpty()) {
+                if (!hasRecord) {
                     var photo = new Photo();
                     photo.setOriginalFilename(key);
                     photo.setInternalFilename(key);
@@ -293,8 +300,7 @@ public class PhotoService {
                     createdCount++;
                 }
 
-                var thumbnailKey = THUMBNAIL_KEY_PREFIX + key;
-                if (storageService.get(thumbnailKey).isEmpty()) {
+                if (!hasThumbnail) {
                     thumbnailService.createThumbnail(key, new ByteArrayInputStream(bytes), originalObject.contentType());
                 }
             } catch (Exception e) {
