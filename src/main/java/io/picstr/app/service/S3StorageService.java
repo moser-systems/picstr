@@ -13,6 +13,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -64,6 +65,24 @@ public class S3StorageService implements StorageService {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get file from S3: " + key, e);
+        }
+    }
+
+    @Override
+    public boolean exists(String key) {
+        try {
+            s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(properties.getS3().getBucket())
+                    .key(key)
+                    .build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw e;
         }
     }
 

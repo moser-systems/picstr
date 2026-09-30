@@ -66,7 +66,7 @@ class PhotoStorageReconciliationTest {
         when(categoryRepository.findByNameIgnoreCase("other")).thenReturn(Optional.of(category));
         when(photoRepository.findByInternalFilename("a.jpg")).thenReturn(Optional.empty());
         when(storageService.get("a.jpg")).thenReturn(Optional.of(new StorageObject(new ByteArrayInputStream(imageBytes), imageBytes.length, "image/jpeg")));
-        when(storageService.get("thumb_a.jpg")).thenReturn(Optional.empty());
+        when(storageService.exists("thumb_a.jpg")).thenReturn(false);
 
         var created = photoService.reconcileStorageFiles();
 
@@ -94,14 +94,14 @@ class PhotoStorageReconciliationTest {
         when(storageService.listKeys()).thenReturn(List.of("b.jpg"));
         when(categoryRepository.findByNameIgnoreCase("other")).thenReturn(Optional.of(category));
         when(photoRepository.findByInternalFilename("b.jpg")).thenReturn(Optional.of(existing));
-        when(storageService.get("b.jpg")).thenReturn(Optional.of(new StorageObject(new ByteArrayInputStream(imageBytes), imageBytes.length, "image/jpeg")));
-        when(storageService.get("thumb_b.jpg")).thenReturn(Optional.of(new StorageObject(new ByteArrayInputStream(imageBytes), imageBytes.length, "image/jpeg")));
+        when(storageService.exists("thumb_b.jpg")).thenReturn(true);
 
         var created = photoService.reconcileStorageFiles();
 
         assertThat(created).isZero();
         verify(photoRepository, never()).save(any(Photo.class));
         verify(thumbnailService, never()).createThumbnail(any(String.class), any(ByteArrayInputStream.class), any(String.class));
+        verify(storageService, never()).get("b.jpg");
     }
 
     @Test
@@ -114,7 +114,7 @@ class PhotoStorageReconciliationTest {
         when(categoryRepository.save(any(Category.class))).thenReturn(newCategory);
         when(photoRepository.findByInternalFilename("c.jpg")).thenReturn(Optional.empty());
         when(storageService.get("c.jpg")).thenReturn(Optional.of(new StorageObject(new ByteArrayInputStream(imageBytes), imageBytes.length, "image/jpeg")));
-        when(storageService.get("thumb_c.jpg")).thenReturn(Optional.empty());
+        when(storageService.exists("thumb_c.jpg")).thenReturn(false);
 
         var created = photoService.reconcileStorageFiles();
 

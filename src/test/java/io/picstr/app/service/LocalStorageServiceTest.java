@@ -62,6 +62,15 @@ class LocalStorageServiceTest {
         assertThat(root.resolve("keep.txt")).exists();
     }
 
+    @Test
+    void exists_checksWithoutReading() {
+        upload("photo.jpg", "data");
+
+        assertThat(storage.exists("photo.jpg")).isTrue();
+        assertThat(storage.exists("missing.jpg")).isFalse();
+        assertThat(storage.exists("../photo.jpg")).isFalse();
+    }
+
     private void upload(String key, String content) {
         var bytes = content.getBytes(StandardCharsets.UTF_8);
         storage.upload(key, new ByteArrayInputStream(bytes), bytes.length, "text/plain");

@@ -78,6 +78,15 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public boolean exists(String key) {
+        try {
+            return Files.isRegularFile(resolveSafe(key));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    @Override
     public List<String> listKeys() {
         try {
             Path basePath = basePath();

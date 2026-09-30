@@ -48,8 +48,8 @@ class PhotoServiceMissingFilesDetectionTest {
         photo.setInternalFilename("photo1.jpg");
 
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
-        when(storageService.get("photo1.jpg")).thenReturn(Optional.empty());
-        when(storageService.get("thumb_photo1.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
+        when(storageService.exists("photo1.jpg")).thenReturn(false);
+        when(storageService.exists("thumb_photo1.jpg")).thenReturn(true);
 
         var archived = photoService.archivePhotosWithMissingFiles();
 
@@ -65,8 +65,8 @@ class PhotoServiceMissingFilesDetectionTest {
         photo.setInternalFilename("photo2.png");
 
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
-        when(storageService.get("photo2.png")).thenReturn(Optional.of(new StorageObject(null, 0, "image/png")));
-        when(storageService.get("thumb_photo2.png")).thenReturn(Optional.empty());
+        when(storageService.exists("photo2.png")).thenReturn(true);
+        when(storageService.exists("thumb_photo2.png")).thenReturn(false);
 
         var archived = photoService.archivePhotosWithMissingFiles();
 
@@ -82,8 +82,8 @@ class PhotoServiceMissingFilesDetectionTest {
         photo.setInternalFilename("photo3.jpg");
 
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
-        when(storageService.get("photo3.jpg")).thenReturn(Optional.empty());
-        when(storageService.get("thumb_photo3.jpg")).thenReturn(Optional.empty());
+        when(storageService.exists("photo3.jpg")).thenReturn(false);
+        when(storageService.exists("thumb_photo3.jpg")).thenReturn(false);
 
         var archived = photoService.archivePhotosWithMissingFiles();
 
@@ -99,8 +99,8 @@ class PhotoServiceMissingFilesDetectionTest {
         photo.setInternalFilename("photo4.jpg");
 
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo));
-        when(storageService.get("photo4.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
-        when(storageService.get("thumb_photo4.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
+        when(storageService.exists("photo4.jpg")).thenReturn(true);
+        when(storageService.exists("thumb_photo4.jpg")).thenReturn(true);
 
         var archived = photoService.archivePhotosWithMissingFiles();
 
@@ -126,16 +126,16 @@ class PhotoServiceMissingFilesDetectionTest {
         when(photoRepository.findByDeleteDateIsNull(any(Sort.class))).thenReturn(List.of(photo1, photo2, photo3));
 
         // photo1: missing original
-        when(storageService.get("a.jpg")).thenReturn(Optional.empty());
-        when(storageService.get("thumb_a.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
+        when(storageService.exists("a.jpg")).thenReturn(false);
+        when(storageService.exists("thumb_a.jpg")).thenReturn(true);
 
         // photo2: has both files
-        when(storageService.get("b.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
-        when(storageService.get("thumb_b.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
+        when(storageService.exists("b.jpg")).thenReturn(true);
+        when(storageService.exists("thumb_b.jpg")).thenReturn(true);
 
         // photo3: missing thumbnail
-        when(storageService.get("c.jpg")).thenReturn(Optional.of(new StorageObject(null, 0, "image/jpeg")));
-        when(storageService.get("thumb_c.jpg")).thenReturn(Optional.empty());
+        when(storageService.exists("c.jpg")).thenReturn(true);
+        when(storageService.exists("thumb_c.jpg")).thenReturn(false);
 
         var archived = photoService.archivePhotosWithMissingFiles();
 

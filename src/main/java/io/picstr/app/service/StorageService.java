@@ -10,6 +10,11 @@ public interface StorageService {
 
     Optional<StorageObject> get(String key);
 
+    /** Checks for an object without downloading it. Backends should override the fallback. */
+    default boolean exists(String key) {
+        return get(key).isPresent();
+    }
+
     List<String> listKeys();
 
     void delete(String key);
