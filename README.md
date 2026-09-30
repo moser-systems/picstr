@@ -338,6 +338,24 @@ APP_PHOTO_RECONCILE_CRON=0 15 4 * * *  # run at 4:15 AM daily (default)
 
 ---
 
+### REST API
+
+A JSON API under `/api/v1` covers photos (list, search, upload, update, archive, restore, bulk actions, file download), categories and tags. Clients authenticate with an API key:
+
+```bash
+APP_API_KEYS=change-me-1,change-me-2   # comma-separated; without keys the API is disabled
+```
+
+```bash
+curl -H "Authorization: Bearer change-me-1" "https://picstr.example.com/api/v1/photos?q=beach"
+curl -H "Authorization: Bearer change-me-1" -F images=@IMG_0001.jpg -F category=other \
+     https://picstr.example.com/api/v1/photos
+```
+
+The OpenAPI spec is at `/api-docs` and Swagger UI at `/api-docs/ui` (behind the normal web login).
+
+---
+
 ### Health check
 
 `GET /actuator/health` returns `{"status":"UP"}` without authentication and is used by the container `HEALTHCHECK`. No other Actuator endpoints are exposed.
@@ -535,4 +553,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Future Enhancements
 - Search by GPS area
-- API endpoints for integration with other applications or mobile clients

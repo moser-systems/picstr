@@ -70,7 +70,7 @@ public class PhotoService {
      * so it can be reused for the next image of a bulk upload.
      */
     @Transactional
-    public void upload(MultipartFile file, UploadForm form) {
+    public Photo upload(MultipartFile file, UploadForm form) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Image is required");
         }
@@ -129,7 +129,7 @@ public class PhotoService {
         photo.setLongitude(longitude);
         photo.setCategory(category);
         photo.setTags(tags);
-        photoRepository.save(photo);
+        return photoRepository.save(photo);
     }
 
     private GeoLocation readGeoLocation(InputStream stream) throws ImageProcessingException, IOException {
@@ -291,13 +291,19 @@ public class PhotoService {
     @Transactional(readOnly = true)
     public Photo get(Long id) {
         return photoRepository.findByIdAndDeleteDateIsNull(id)
-                .orElseThrow(() -> new IllegalArgumentException("Photo not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Photo not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Photo getAny(Long id) {
+        return photoRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Photo not found: " + id));
     }
 
     @Transactional(readOnly = true)
     public Photo getArchived(Long id) {
         return photoRepository.findByIdAndDeleteDateIsNotNull(id)
-                .orElseThrow(() -> new IllegalArgumentException("Archived photo not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Archived photo not found: " + id));
     }
 
     @Transactional
@@ -327,7 +333,7 @@ public class PhotoService {
     @Transactional
     public void restore(Long id) {
         var photo = photoRepository.findByIdAndDeleteDateIsNotNull(id)
-                .orElseThrow(() -> new IllegalArgumentException("Archived photo not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Archived photo not found: " + id));
         photo.setDeleteDate(null);
         photoRepository.save(photo);
     }

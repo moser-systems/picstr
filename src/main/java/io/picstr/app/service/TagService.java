@@ -40,7 +40,7 @@ public class TagService {
     @Transactional(readOnly = true)
     public Tag get(Long id) {
         return tagRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tag not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Tag not found: " + id));
     }
 
     @Transactional
@@ -83,7 +83,7 @@ public class TagService {
     @Transactional
     public void delete(Long id) {
         if (!tagRepository.existsById(id)) {
-            throw new IllegalArgumentException("Tag not found: " + id);
+            throw new NotFoundException("Tag not found: " + id);
         }
         tagRepository.deleteById(id);
     }
