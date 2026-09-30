@@ -114,10 +114,14 @@ public class PhotoController extends BaseController {
         if (!search.isEmpty()) {
             var safePage = Math.max(page, 0);
             var safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
-            var photosPage = service.search(search, safePage, safeSize);
-            model.addAttribute("photos", photosPage.getContent());
-            model.addAttribute("pageData", photosPage);
-            model.addAttribute("pageSize", photosPage.getSize());
+            try {
+                var photosPage = service.search(search, safePage, safeSize);
+                model.addAttribute("photos", photosPage.getContent());
+                model.addAttribute("pageData", photosPage);
+                model.addAttribute("pageSize", photosPage.getSize());
+            } catch (IllegalArgumentException ex) {
+                model.addAttribute("error", ex.getMessage());
+            }
         }
         return "photo/search";
     }

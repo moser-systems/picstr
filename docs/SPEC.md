@@ -116,7 +116,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-GAL-03 | Every paginated view clamps `page` to ≥ 0 and `size` to 1…100. Page links keep the other query parameters and are only shown when there is more than one page. |
 | FR-GAL-04 | `/photos/by-category/{name}` filters by category name, case-insensitive (default page size 12). |
 | FR-GAL-05 | `/photos/by-tag/{name}` filters by tag name, case-insensitive (default page size 12). |
-| FR-GAL-07 | `/photos/search` finds active photos by free text (filename, description, category name and tag names; case-insensitive substring, `%`/`_` matched literally), optionally narrowed by category, tag and "only with location". Results are newest first, paginated (default 12) and shown in the gallery grid with the number of matches. Without any criterion only the search form is shown. A search box in the navbar searches by text. |
+| FR-GAL-07 | `/photos/search` finds active photos by free text (filename, description, category name and tag names; case-insensitive substring, `%`/`_` matched literally), optionally narrowed by category, tag, "only with location" and a map area (`north`, `south`, `east`, `west` in degrees; `west` > `east` crosses the antimeridian). The area is picked on a small map in the search form ("Use visible map area") or with "Search this area" on the gallery map; an invalid area shows an error (400 in the API). Results are newest first, paginated (default 12) and shown in the gallery grid with the number of matches. Without any criterion only the search form is shown. A search box in the navbar searches by text. |
 | FR-GAL-08 | Gallery cards (home, gallery, filters, search) and archive rows have a checkbox. While photos are selected, a sticky action bar shows the count, "select all"/"clear" and the bulk actions: archive (with confirmation), set category, add tags, remove tags; in the archive: restore. Actions run on at most 100 photos in one transaction (`POST /photos/bulk`) and return to the page they came from (local paths only) with a result message. Adding tags skips photos that would exceed 5 tags and says how many were skipped; new tag names follow FR-TAX-02. Archive, category and tag actions only change active photos; restore only archived ones. |
 | FR-GAL-06 | Photos are shown as cards in a responsive grid (1/2/3/4 columns by breakpoint), each with a square thumbnail, a category badge in the category's colour and light tag badges in the tags' colours. Badges link to the matching filter view. |
 
@@ -387,7 +387,7 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 |---|---|---|---|
 | GET | `/` | — | Home page with latest 8 photos |
 | GET | `/photos` | `page`, `size`=12 | Gallery |
-| GET | `/photos/search` | `q`, `category`, `tag`, `located`, `page`, `size`=12 | Search (FR-GAL-07) |
+| GET | `/photos/search` | `q`, `category`, `tag`, `located`, `north`/`south`/`east`/`west`, `page`, `size`=12 | Search (FR-GAL-07) |
 | GET | `/photos/map` | — | Gallery map (FR-DET-06) |
 | GET | `/photos/map/markers` | — | JSON markers for all active geotagged photos |
 | GET | `/photos/upload` | — | Upload form |
@@ -440,7 +440,7 @@ All paths below `/api/v1`; see `/api-docs/ui` for the full schema.
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `/photos?q&category&tag&located&page&size` | Page of active photos (default size 20, max 100) |
+| GET | `/photos?q&category&tag&located&north&south&east&west&page&size` | Page of active photos (default size 20, max 100) |
 | GET | `/photos/archived?page&size` | Page of archived photos |
 | GET | `/photos/locations` | Markers of all active geotagged photos |
 | GET | `/photos/{id}` | Photo (active or archived; `archived` flag) |
@@ -612,7 +612,7 @@ These are differences between the intended behaviour and the code, checked again
 | ID | Item | Source |
 |---|---|---|
 | RM-01 | ~~Bulk upload and bulk management~~ (done, FR-UPL-01/03/12, FR-GAL-08) | README |
-| RM-02 | ~~Search by filename, description, category and tags~~ (done, FR-GAL-07); search by GPS area still open (the gallery map covers browsing by place) | README |
+| RM-02 | ~~Search by filename, description, category, tags and GPS area~~ (done, FR-GAL-07) | README |
 | RM-03 | ~~API endpoints for integration with other applications and mobile clients~~ (done, FR-API-*) | README |
 | RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |

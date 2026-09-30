@@ -1,6 +1,7 @@
 package io.picstr.app.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,12 +30,14 @@ class PhotoSearchRepositoryTest {
     private PhotoRepository photoRepository;
 
     private Category travel;
+    private Category places;
     private Tag beach;
     private Tag sunset;
 
     @BeforeEach
     void setUp() {
         travel = entityManager.persist(new Category("travel"));
+        places = entityManager.persist(new Category("places"));
         var work = entityManager.persist(new Category("work"));
         beach = entityManager.persist(new Tag("beach"));
         sunset = entityManager.persist(new Tag("sunset"));
@@ -43,6 +46,9 @@ class PhotoSearchRepositoryTest {
         photo("office.png", null, work, Set.of(), false, false);
         photo("100%_done.jpg", "Launch party!", work, Set.of(), false, false);
         photo("archived-beach.jpg", "Old beach day", travel, Set.of(beach), true, true);
+        located("zurich.jpg", 47.3769, 8.5417);
+        located("fiji.jpg", -18.1416, 178.4419);
+        located("samoa.jpg", -13.7590, -172.1046);
         entityManager.flush();
     }
 
@@ -81,13 +87,61 @@ class PhotoSearchRepositoryTest {
 
         var located = new PhotoSearchForm();
         located.setLocated(true);
-        located.setQ("jpg");
+        located.setQ("img");
         assertThat(filenames(located)).containsExactly("IMG_0001.jpg");
     }
 
     @Test
     void archivedPhotosAreNeverReturned() {
         assertThat(filenames(search("archived"))).isEmpty();
+    }
+
+    @Test
+    void areaMatchesPhotosInsideTheBoundingBox() {
+        // Western Europe: Lisbon and Zurich, not the archived Lisbon photo
+        assertThat(filenames(area(50, 35, 10, -10))).containsExactlyInAnyOrder("IMG_0001.jpg", "zurich.jpg");
+        assertThat(filenames(area(50, 45, 10, 5))).containsExactly("zurich.jpg");
+    }
+
+    @Test
+    void areaAcrossTheAntimeridianWrapsAround() {
+        // west 170°E to east 170°W covers Fiji and Samoa, nothing in Europe
+        assertThat(filenames(area(0, -30, -170, 170))).containsExactlyInAnyOrder("fiji.jpg", "samoa.jpg");
+    }
+
+    @Test
+    void areaCombinesWithText() {
+        var search = area(50, 35, 10, -10);
+        search.setQ("zurich");
+        assertThat(filenames(search)).containsExactly("zurich.jpg");
+    }
+
+    @Test
+    void incompleteAreaIsIgnoredAndInvalidAreaRejected() {
+        var incomplete = new PhotoSearchForm();
+        incomplete.setNorth(50.0);
+        assertThat(incomplete.isEmpty()).isTrue();
+
+        assertThatThrownBy(() -> filenames(area(10, 20, 0, 0)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageStartingWith("Invalid map area");
+        assertThatThrownBy(() -> filenames(area(95, 0, 0, 0))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> filenames(area(10, 0, 181, 0))).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private static PhotoSearchForm area(double north, double south, double east, double west) {
+        var search = new PhotoSearchForm();
+        search.setNorth(north);
+        search.setSouth(south);
+        search.setEast(east);
+        search.setWest(west);
+        return search;
+    }
+
+    private void located(String filename, double latitude, double longitude) {
+        photo(filename, null, places, Set.of(), false, false);
+        var photo = photoRepository.findAll().stream().filter(p -> p.getOriginalFilename().equals(filename)).findFirst().orElseThrow();
+        photo.setLatitude(BigDecimal.valueOf(latitude));
+        photo.setLongitude(BigDecimal.valueOf(longitude));
     }
 
     private void photo(String filename, String description, Category category, Set<Tag> tags,

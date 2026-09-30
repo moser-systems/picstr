@@ -1,5 +1,6 @@
 package io.picstr.app.repository;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -34,6 +35,9 @@ public final class PhotoSpecifications {
         if (StringUtils.hasText(search.getTag())) {
             specs.add((root, query, cb) -> hasTag(root, query, cb, normalize(search.getTag()), false));
         }
+        if (search.hasArea()) {
+            specs.add(inArea(search.getNorth(), search.getSouth(), search.getEast(), search.getWest()));
+        }
         if (search.isLocated()) {
             specs.add((root, query, cb) ->
                     cb.and(cb.isNotNull(root.get("latitude")), cb.isNotNull(root.get("longitude"))));
@@ -48,6 +52,28 @@ public final class PhotoSpecifications {
                 cb.like(cb.lower(root.get("description")), pattern, ESCAPE),
                 cb.like(cb.lower(root.get("category").get("name")), pattern, ESCAPE),
                 hasTag(root, query, cb, pattern, true));
+    }
+
+    private static Specification<Photo> inArea(double north, double south, double east, double west) {
+        if (south < -90 || north > 90 || south > north
+                || west < -180 || west > 180 || east < -180 || east > 180) {
+            throw new IllegalArgumentException("Invalid map area: latitudes must be -90..90 with south <= north, "
+                    + "longitudes -180..180");
+        }
+        var minLat = BigDecimal.valueOf(south);
+        var maxLat = BigDecimal.valueOf(north);
+        var minLon = BigDecimal.valueOf(west);
+        var maxLon = BigDecimal.valueOf(east);
+        return (root, query, cb) -> {
+            var latitude = root.<BigDecimal>get("latitude");
+            var longitude = root.<BigDecimal>get("longitude");
+            var inLatitude = cb.between(latitude, minLat, maxLat);
+            // west > east: the area crosses the antimeridian, so it is two longitude ranges
+            var inLongitude = west <= east
+                    ? cb.between(longitude, minLon, maxLon)
+                    : cb.or(cb.greaterThanOrEqualTo(longitude, minLon), cb.lessThanOrEqualTo(longitude, maxLon));
+            return cb.and(inLatitude, inLongitude);
+        };
     }
 
     /** Subquery instead of a join, so a photo with several matching tags is returned once. */
