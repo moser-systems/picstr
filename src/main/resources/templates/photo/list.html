@@ -51,7 +51,7 @@
                             <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="|${photo.category.name}|">category</span>
                         </a>
                         <div class="mt-2">
-                            <div class="badges-list">
+                            <div class="badge-list">
                                 <span th:each="tag : ${photo.tags}">
                                     <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
                                         <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>

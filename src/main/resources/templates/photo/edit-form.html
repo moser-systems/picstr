@@ -47,7 +47,7 @@
                                   th:field="*{description}"
                                   maxlength="1000"
                                   rows="4"></textarea>
-                        <div class="form-hint" th:text="#{msg.description.optional}">Optional, up to 1000 characters.</div>
+                        <div class="form-text" th:text="#{msg.description.optional}">Optional, up to 1000 characters.</div>
                         <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Description error</div>
                     </div>
 
@@ -59,7 +59,7 @@
                                     th:text="${tag.name}">
                             </option>
                         </select>
-                        <div class="form-hint" th:text="#{msg.tags.hint}">Select existing tags or type a new one and press Enter.</div>
+                        <div class="form-text" th:text="#{msg.tags.hint}">Select existing tags or type a new one and press Enter.</div>
                     </div>
 
                     <div class="mb-3">

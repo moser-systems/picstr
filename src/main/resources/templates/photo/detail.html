@@ -94,7 +94,7 @@
                             <tr><th th:text="#{label.photo.internalFilename}">Internal Filename</th><td class="text-muted small" th:text="${photo.internalFilename}">uuid.jpg</td></tr>
                             <tr><th th:text="#{label.photo.contentType}">Content Type</th><td th:text="${photo.contentType}">image/jpeg</td></tr>
                             <tr><th th:text="#{label.description}">Description</th><td th:text="${photo.description ?: '-'}">-</td></tr>
-                            <tr><th th:text="#{label.photo.size}">Size</th><td><span th:text="${photo.sizeBytes}">0</span> <span th:text="#{label.bytes}">bytes</span></td></tr>
+                            <tr><th th:text="#{label.photo.size}">Size</th><td th:text="${@fmt.bytes(photo.sizeBytes)}">0 B</td></tr>
                             <tr>
                                 <th th:text="#{label.category}">Category</th>
                                 <td>
@@ -107,7 +107,7 @@
                                 <th th:text="#{label.tags}">Tags</th>
                                 <td>
                                     <span th:if="${photo.tags == null or photo.tags.isEmpty()}" th:text="'-'">-</span>
-                                    <div th:if="${photo.tags != null and !photo.tags.isEmpty()}" class="badges-list">
+                                    <div th:if="${photo.tags != null and !photo.tags.isEmpty()}" class="badge-list">
                                         <span th:each="tag : ${photo.tags}" class="me-1">
                                             <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none" hx-boost="true">
                                                 <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
@@ -118,7 +118,8 @@
                             </tr>
                             <tr><th th:text="#{label.latitude}">Latitude</th><td th:text="${photo.latitude}">—</td></tr>
                             <tr><th th:text="#{label.longitude}">Longitude</th><td th:text="${photo.longitude}">—</td></tr>
-                            <tr><th th:text="#{label.photo.uploadedAt}">Uploaded At</th><td th:text="${photo.uploadedAt}">2026-01-01T00:00:00Z</td></tr>
+                            <tr><th th:text="#{label.photo.uploadedAt}">Uploaded At</th><td th:text="${#temporals.format(photo.uploadedAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 00:00</td></tr>
+                            <tr th:if="${photo.deleteDate != null}"><th th:text="#{label.photo.deletedAt}">Archived at</th><td th:text="${#temporals.format(photo.deleteDate, 'dd.MM.yyyy HH:mm')}">01.01.2026 00:00</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -126,7 +127,7 @@
 
                 <div class="card mt-3" th:if="${photo.latitude != null and photo.longitude != null}">
                     <div class="card-header">
-                        <h3 class="card-title">Map</h3>
+                        <h3 class="card-title" th:text="#{label.photo.map}">Map</h3>
                     </div>
                     <div class="card-body p-0">
                         <div id="photo-map"

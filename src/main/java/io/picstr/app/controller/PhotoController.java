@@ -64,24 +64,25 @@ public class PhotoController extends BaseController {
     @PostMapping("/upload")
     public String upload(@Valid @ModelAttribute("uploadForm") UploadForm uploadForm,
                          BindingResult bindingResult,
-                         Model model) {
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
+        if (!bindingResult.hasErrors()) {
+            try {
+                service.upload(uploadForm);
+                // Keep category and tags for the next capture; everything else is per photo.
+                var nextForm = new UploadForm();
+                nextForm.setCategory(uploadForm.getCategory());
+                nextForm.setTags(uploadForm.getTags());
+                redirectAttributes.addFlashAttribute("uploadForm", nextForm);
+                redirectAttributes.addFlashAttribute("success", "msg.photo.upload.success");
+                return "redirect:/photos/upload";
+            } catch (IllegalArgumentException | IllegalStateException ex) {
+                log.error("Failed to upload image", ex);
+                bindingResult.reject("upload.failed", ex.getMessage());
+            }
+        }
         model.addAttribute("categories", service.categories());
         model.addAttribute("allTags", tagService.list());
-
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("uploadForm", uploadForm);
-            return "photo/upload-form";
-        }
-
-        try {
-            service.upload(uploadForm);
-            uploadForm.setImage(null);
-            model.addAttribute("uploadForm", uploadForm);
-            model.addAttribute("success", "msg.photo.upload.success");
-        } catch (IllegalArgumentException | IllegalStateException ex) {
-            log.error("Failed to upload image", ex);
-            bindingResult.reject("upload.failed", ex.getMessage());
-        }
         return "photo/upload-form";
     }
 
@@ -123,7 +124,7 @@ public class PhotoController extends BaseController {
     @GetMapping("/by-category/{category}")
     public String byCategory(@PathVariable String category,
                              @RequestParam(defaultValue = "0") int page,
-                             @RequestParam(defaultValue = "5") int size,
+                             @RequestParam(defaultValue = "12") int size,
                              Model model,
                              RedirectAttributes redirectAttributes) {
         try {
