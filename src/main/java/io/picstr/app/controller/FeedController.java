@@ -51,7 +51,6 @@ public class FeedController {
             String assetUrl = baseUrl + "/assets/thumb_" + photo.getInternalFilename();
             SyndEntry entry = new SyndEntryImpl();
             entry.setTitle(photo.getOriginalFilename());
-            entry.setPublishedDate(Date.from(photo.getUploadedAt()));
             entry.setUri("photo-" + photo.getId());
             if (photo.getUploadedAt() != null) {
                 entry.setPublishedDate(Date.from(photo.getUploadedAt()));

@@ -42,7 +42,7 @@ class PhotoServiceTest {
     }
 
     @Test
-    void purgeArchivedOlderThanDays_deletesThumbnailAndOriginalBeforeDbDelete() {
+    void purgeArchivedOlderThanDays_deletesStorageFilesThenEachEntity() {
         var first = new Photo();
         first.setInternalFilename("a.jpg");
         var second = new Photo();
@@ -57,8 +57,27 @@ class PhotoServiceTest {
         var inOrder = inOrder(storageService, photoRepository);
         inOrder.verify(storageService).delete("thumb_a.jpg");
         inOrder.verify(storageService).delete("a.jpg");
+        inOrder.verify(photoRepository).delete(first);
         inOrder.verify(storageService).delete("thumb_b.png");
         inOrder.verify(storageService).delete("b.png");
-        inOrder.verify(photoRepository).deleteAllInBatch(candidates);
+        inOrder.verify(photoRepository).delete(second);
+        verify(photoRepository, never()).deleteAllInBatch(org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test
+    void purgeArchivedOlderThanDays_continuesAfterStorageFailure() {
+        var broken = new Photo();
+        broken.setInternalFilename("broken.jpg");
+        var ok = new Photo();
+        ok.setInternalFilename("ok.jpg");
+
+        when(photoRepository.findByDeleteDateBefore(org.mockito.ArgumentMatchers.any(Instant.class))).thenReturn(List.of(broken, ok));
+        org.mockito.Mockito.doThrow(new RuntimeException("storage down")).when(storageService).delete("thumb_broken.jpg");
+
+        var purged = photoService.purgeArchivedOlderThanDays(7);
+
+        assertThat(purged).isEqualTo(1);
+        verify(photoRepository, never()).delete(broken);
+        verify(photoRepository).delete(ok);
     }
 }

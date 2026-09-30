@@ -206,7 +206,8 @@ public class PhotoService {
         photoRepository.save(photo);
     }
 
-    @Transactional
+    // Deliberately not @Transactional: each repository delete commits on its own, so one failing photo
+    // doesn't roll back the ones whose storage files are already gone.
     public int purgeArchivedOlderThanDays(int retentionDays) {
         var cutoff = Instant.now().minusSeconds(retentionDays * 24L * 60L * 60L);
         var candidates = photoRepository.findByDeleteDateBefore(cutoff);
@@ -214,15 +215,21 @@ public class PhotoService {
             return 0;
         }
 
+        var purged = 0;
         for (var photo : candidates) {
-            var originalKey = photo.getInternalFilename();
-            storageService.delete(THUMBNAIL_KEY_PREFIX + originalKey);
-            storageService.delete(originalKey);
+            try {
+                // Storage deletes are idempotent, so a photo whose DB delete fails is retried on the next run.
+                var originalKey = photo.getInternalFilename();
+                storageService.delete(THUMBNAIL_KEY_PREFIX + originalKey);
+                storageService.delete(originalKey);
+                // Entity delete (not a bulk delete) so JPA also removes the photo_tags rows.
+                photoRepository.delete(photo);
+                purged++;
+            } catch (RuntimeException e) {
+                log.error("Failed to purge archived photo {}", photo.getId(), e);
+            }
         }
-
-        var count = candidates.size();
-        photoRepository.deleteAllInBatch(candidates);
-        return count;
+        return purged;
     }
 
     @Transactional

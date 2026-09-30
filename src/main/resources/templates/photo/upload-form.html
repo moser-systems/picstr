@@ -54,6 +54,7 @@
                                     th:text="${tag.name}"
                                     th:selected="${uploadForm.tags != null and #lists.contains(uploadForm.tags, tag.name)}"></option>
                         </select>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('tags')}" th:errors="*{tags}">Tags error</div>
 
                         <div class="form-text" th:text="#{msg.tags.hint}">Select existing tags or type a new one and press Enter.</div>
                     </div>

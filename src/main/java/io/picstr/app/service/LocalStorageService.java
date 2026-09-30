@@ -29,12 +29,7 @@ public class LocalStorageService implements StorageService {
     @Override
     public void upload(String key, InputStream content, long contentLength, String contentType) {
         try {
-            Path basePath = Paths.get(properties.getLocal().getBasePath());
-
-            // Create base directory if it doesn't exist
-            Files.createDirectories(basePath);
-
-            Path filePath = basePath.resolve(key);
+            Path filePath = resolveSafe(key);
 
             // Create parent directories if needed
             Files.createDirectories(filePath.getParent());
@@ -57,11 +52,15 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public Optional<StorageObject> get(String key) {
+        Path filePath;
         try {
-            Path basePath = Paths.get(properties.getLocal().getBasePath()).toAbsolutePath().normalize();
-            Path filePath = basePath.resolve(key).normalize();
+            filePath = resolveSafe(key);
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
 
-            if (!filePath.startsWith(basePath) || !Files.exists(filePath) || Files.isDirectory(filePath)) {
+        try {
+            if (!Files.isRegularFile(filePath)) {
                 return Optional.empty();
             }
 
@@ -81,7 +80,7 @@ public class LocalStorageService implements StorageService {
     @Override
     public List<String> listKeys() {
         try {
-            Path basePath = Paths.get(properties.getLocal().getBasePath()).toAbsolutePath().normalize();
+            Path basePath = basePath();
             if (!Files.exists(basePath)) {
                 return List.of();
             }
@@ -101,18 +100,26 @@ public class LocalStorageService implements StorageService {
     @Override
     public void delete(String key) {
         try {
-            Path basePath = Paths.get(properties.getLocal().getBasePath()).toAbsolutePath().normalize();
-            Path filePath = basePath.resolve(key).normalize();
-
-            if (!filePath.startsWith(basePath)) {
-                throw new IllegalArgumentException("Invalid storage key path: " + key);
-            }
-
+            Path filePath = resolveSafe(key);
             Files.deleteIfExists(filePath);
             log.info("File deleted from local storage: {}", filePath);
         } catch (Exception e) {
             log.error("Failed to delete file from local storage: {}", key, e);
             throw new RuntimeException("Failed to delete file: " + key, e);
         }
+    }
+
+    private Path basePath() {
+        return Paths.get(properties.getLocal().getBasePath()).toAbsolutePath().normalize();
+    }
+
+    /** Resolves a key below the base path and rejects keys that would escape it. */
+    private Path resolveSafe(String key) {
+        Path basePath = basePath();
+        Path filePath = basePath.resolve(key).normalize();
+        if (!filePath.startsWith(basePath) || filePath.equals(basePath)) {
+            throw new IllegalArgumentException("Invalid storage key path: " + key);
+        }
+        return filePath;
     }
 }

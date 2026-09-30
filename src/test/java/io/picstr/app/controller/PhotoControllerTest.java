@@ -94,4 +94,34 @@ class PhotoControllerTest {
         assertThat(nextForm.getImage()).isNull();
         assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("msg.photo.upload.success");
     }
+
+    @Test
+    void restore_ignoresRedirectToOtherHost() {
+        var controller = new PhotoController();
+        ReflectionTestUtils.setField(controller, "service", photoService);
+
+        var view = controller.restore(7L, "https://evil.example/phish", new RedirectAttributesModelMap());
+
+        assertThat(view).isEqualTo("redirect:/photos/archive");
+        verify(photoService).restore(7L);
+    }
+
+    @Test
+    void restore_followsLocalRedirect() {
+        var controller = new PhotoController();
+        ReflectionTestUtils.setField(controller, "service", photoService);
+
+        var view = controller.restore(7L, "/photos/7", new RedirectAttributesModelMap());
+
+        assertThat(view).isEqualTo("redirect:/photos/7");
+    }
+
+    @Test
+    void isLocalPath_rejectsProtocolRelativeAndBackslashTargets() {
+        assertThat(PhotoController.isLocalPath("/photos/archive")).isTrue();
+        assertThat(PhotoController.isLocalPath("//evil.example")).isFalse();
+        assertThat(PhotoController.isLocalPath("/\\evil.example")).isFalse();
+        assertThat(PhotoController.isLocalPath("https://evil.example")).isFalse();
+        assertThat(PhotoController.isLocalPath(null)).isFalse();
+    }
 }

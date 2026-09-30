@@ -200,7 +200,15 @@ public class PhotoController extends BaseController {
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:" + redirect;
+        return "redirect:" + (isLocalPath(redirect) ? redirect : "/photos/archive");
+    }
+
+    /** Only allow redirects to paths on this application, never to another host. */
+    static boolean isLocalPath(String target) {
+        return target != null
+                && target.startsWith("/")
+                && !target.startsWith("//")
+                && !target.startsWith("/\\");
     }
 
     @PostMapping("/{id}")
