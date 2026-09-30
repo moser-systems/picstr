@@ -235,6 +235,51 @@ class PhotoControllerTest {
         verifyNoInteractions(photoService);
     }
 
+    @Test
+    void card_answersNoContentWhileProcessing() {
+        var controller = uploadController();
+        var photo = new Photo();
+        photo.setProcessingStatus(io.picstr.app.model.ProcessingStatus.PROCESSING);
+        when(photoService.getAny(5L)).thenReturn(photo);
+        var response = new org.springframework.mock.web.MockHttpServletResponse();
+
+        var view = controller.card(5L, new ExtendedModelMap(), response);
+
+        assertThat(view).isNull();
+        assertThat(response.getStatus()).isEqualTo(204);
+    }
+
+    @Test
+    void card_rendersTheFinishedCard() {
+        var controller = uploadController();
+        var photo = new Photo();
+        photo.setProcessingStatus(io.picstr.app.model.ProcessingStatus.READY);
+        when(photoService.getAny(5L)).thenReturn(photo);
+        var model = new ExtendedModelMap();
+
+        var view = controller.card(5L, model, new org.springframework.mock.web.MockHttpServletResponse());
+
+        assertThat(view).isEqualTo("photo/list :: photoCard(photo=${photo})");
+        assertThat(model.getAttribute("photo")).isSameAs(photo);
+        assertThat(model.getAttribute("bulkEnabled")).isEqualTo(true);
+    }
+
+    @Test
+    void processed_tellsHtmxToRefreshOnceDone() {
+        var controller = uploadController();
+        var processing = new Photo();
+        processing.setProcessingStatus(io.picstr.app.model.ProcessingStatus.PROCESSING);
+        var failed = new Photo();
+        failed.setProcessingStatus(io.picstr.app.model.ProcessingStatus.FAILED);
+        when(photoService.getAny(1L)).thenReturn(processing);
+        when(photoService.getAny(2L)).thenReturn(failed);
+
+        assertThat(controller.processed(1L).getStatusCode().value()).isEqualTo(204);
+        var done = controller.processed(2L);
+        assertThat(done.getStatusCode().value()).isEqualTo(200);
+        assertThat(done.getHeaders().getFirst("HX-Refresh")).isEqualTo("true");
+    }
+
     private PhotoController uploadController() {
         var controller = new PhotoController();
         ReflectionTestUtils.setField(controller, "service", photoService);

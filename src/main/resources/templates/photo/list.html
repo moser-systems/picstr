@@ -39,39 +39,10 @@
         </div>
 
         <div class="row row-cards" th:if="${!#lists.isEmpty(photos)}">
-            <div class="col-sm-6 col-lg-4 col-xl-3" th:each="photo : ${photos}">
-                <div class="card card-link card-link-pop">
-                    <label class="position-absolute top-0 start-0 m-2 p-1 rounded bg-body bg-opacity-75" style="z-index: 2"
-                           th:if="${categories != null}" th:title="#{label.bulk.select}">
-                        <input type="checkbox" class="form-check-input m-0 bulk-select" name="ids" form="bulk-form"
-                               th:value="${photo.id}" th:aria-label="|#{label.bulk.select}: ${photo.originalFilename}|">
-                    </label>
-                    <a th:href="@{|/photos/${photo.id}|}">
-                        <div th:if="${photo.processingStatus.name() == 'READY'}" th:title="${photo.originalFilename}"
-                             class="card-img-top img-responsive img-responsive-1x1"
-                             th:style="|background-image: url('/assets/${photo.thumbnailKey}')|">
-                        </div>
-                        <div th:unless="${photo.processingStatus.name() == 'READY'}" class="card-img-top img-responsive img-responsive-1x1 bg-secondary-lt position-relative" th:title="${photo.originalFilename}">
-                            <span class="position-absolute top-50 start-50 translate-middle text-secondary small text-center"
-                                  th:text="${photo.processingFailed} ? #{label.photo.processingFailed} : #{label.photo.processing}">Processing…</span>
-                        </div>
-                    </a>
-                    <div class="card-body">
-                        <a th:href="@{|/photos/by-category/${photo.category.name}|}" class="text-decoration-none">
-                            <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="|${photo.category.name}|">category</span>
-                        </a>
-                        <div class="mt-2">
-                            <div class="badge-list">
-                                <span th:each="tag : ${photo.tags}">
-                                    <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
-                                        <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
-                                    </a>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- th:replace is processed before th:each on the same element, so the loop needs its own block -->
+            <th:block th:each="photo : ${photos}">
+                <div th:replace="~{photo/list :: photoCard(${photo})}"></div>
+            </th:block>
         </div>
 
         <form id="bulk-form" class="card position-sticky bottom-0 mt-3 shadow d-none" style="z-index: 3"
@@ -121,5 +92,47 @@
             </ul>
         </div>
     </div>
+
+    <!-- One gallery card. While the photo is processing it polls /photos/{id}/card, which answers 204
+         until the photo is done and then returns this fragment again, replacing the placeholder.
+         Wrapped so it only renders where it is included, not on this page itself. -->
+    <th:block th:if="${false}">
+    <div class="col-sm-6 col-lg-4 col-xl-3" th:fragment="photoCard(photo)"
+         th:attr="hx-get=${photo.processing} ? @{|/photos/${photo.id}/card|} : null,
+                  hx-trigger=${photo.processing} ? 'every 3s' : null,
+                  hx-swap=${photo.processing} ? 'outerHTML' : null">
+                <div class="card card-link card-link-pop">
+                    <label class="position-absolute top-0 start-0 m-2 p-1 rounded bg-body bg-opacity-75" style="z-index: 2"
+                           th:if="${bulkEnabled}" th:title="#{label.bulk.select}">
+                        <input type="checkbox" class="form-check-input m-0 bulk-select" name="ids" form="bulk-form"
+                               th:value="${photo.id}" th:aria-label="|#{label.bulk.select}: ${photo.originalFilename}|">
+                    </label>
+                    <a th:href="@{|/photos/${photo.id}|}">
+                        <div th:if="${photo.processingStatus.name() == 'READY'}" th:title="${photo.originalFilename}"
+                             class="card-img-top img-responsive img-responsive-1x1"
+                             th:style="|background-image: url('/assets/${photo.thumbnailKey}')|">
+                        </div>
+                        <div th:unless="${photo.processingStatus.name() == 'READY'}" class="card-img-top img-responsive img-responsive-1x1 bg-secondary-lt position-relative" th:title="${photo.originalFilename}">
+                            <span class="position-absolute top-50 start-50 translate-middle text-secondary small text-center"
+                                  th:text="${photo.processingFailed} ? #{label.photo.processingFailed} : #{label.photo.processing}">Processing…</span>
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <a th:href="@{|/photos/by-category/${photo.category.name}|}" class="text-decoration-none">
+                            <span th:class="|badge bg-${photo.category.color} text-${photo.category.color}-fg|" th:text="|${photo.category.name}|">category</span>
+                        </a>
+                        <div class="mt-2">
+                            <div class="badge-list">
+                                <span th:each="tag : ${photo.tags}">
+                                    <a th:href="@{|/photos/by-tag/${tag.name}|}" class="text-decoration-none">
+                                        <span th:class="|badge bg-${tag.color}-lt text-${tag.color}-lt-fg|" th:text="|#${tag.name}|">tag</span>
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </th:block>
 </div>
 </html>

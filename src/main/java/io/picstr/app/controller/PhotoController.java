@@ -11,10 +11,12 @@ import io.picstr.app.model.Photo;
 import io.picstr.app.model.Tag;
 import io.picstr.app.service.PhotoService;
 import io.picstr.app.service.TagService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -195,6 +197,31 @@ public class PhotoController extends BaseController {
         return "photo/upload-form";
     }
 
+    /**
+     * Polled by gallery cards of photos that are still processing: 204 (no change) while processing, then
+     * the finished card, which replaces the placeholder and stops the polling.
+     */
+    @GetMapping("/{id}/card")
+    public String card(@PathVariable Long id, Model model, HttpServletResponse response) {
+        var photo = service.getAny(id);
+        if (photo.isProcessing()) {
+            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            return null;
+        }
+        model.addAttribute("photo", photo);
+        model.addAttribute("bulkEnabled", true);
+        return "photo/list :: photoCard(photo=${photo})";
+    }
+
+    /** Polled by the detail page while processing: 204, then 200 with HX-Refresh so htmx reloads the page. */
+    @GetMapping("/{id}/processed")
+    public ResponseEntity<Void> processed(@PathVariable Long id) {
+        if (service.getAny(id).isProcessing()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok().header("HX-Refresh", "true").build();
+    }
+
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         try {
@@ -316,6 +343,7 @@ public class PhotoController extends BaseController {
 
     /** Categories and tags for the bulk action bar (and the search form). */
     private void addBulkOptions(Model model) {
+        model.addAttribute("bulkEnabled", true);
         model.addAttribute("categories", service.categories());
         model.addAttribute("allTags", tagService.list());
     }
