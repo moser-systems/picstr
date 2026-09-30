@@ -400,10 +400,11 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 | POST | `{base}/{id}` | Update, then redirect |
 | POST | `{base}/{id}/delete` | Delete, then redirect. Still in use → "still in use" error |
 
-### 7.3 Feed and assets
+### 7.3 Login, feed and assets
 
 | Method | Path | Result |
 |---|---|---|
+| GET | `/login` | Sign-in page with one button per OAuth2 provider (`oauth2` mode). Redirects to `/` when no provider is configured. |
 | GET | `/feed/recent.xml`, `/feeds/recent.xml` | RSS 2.0 (`application/rss+xml`), `limit`=20 (1…100) |
 | GET | `/assets/{key}` | The stored object. Content type comes from storage (fallback `application/octet-stream`), with `Content-Length` and `Cache-Control: max-age=86400, private`. Files of archived photos (original or thumbnail) require authentication; anonymous requests get the login challenge (401 in `basic` mode). Keys containing `..` or `\`, or starting with `/` or `file:`, return 404, as do missing objects. |
 
@@ -476,7 +477,7 @@ In the `dev` profile, all three jobs run **every second** and the retention peri
 | Mode | Behaviour |
 |---|---|
 | `basic` (default) | HTTP Basic authentication. PicStr configures no users, so Spring Boot's default user applies: `user`, with a password generated at startup unless `spring.security.user.*` is set. |
-| `oauth2` | OAuth2/OpenID Connect login. Needs `spring.security.oauth2.client.registration.*`; startup fails without it. `application-oidc-microsoft.properties` is an example profile for Microsoft Entra ID (`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_TENANT_ID`). |
+| `oauth2` | OAuth2/OpenID Connect login. Needs `spring.security.oauth2.client.registration.*`; startup fails without it. `application-oidc-microsoft.properties` is an example profile for Microsoft Entra ID (`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_TENANT_ID`). Unauthenticated pages redirect to `/login`, which lists the configured providers (each links to `/oauth2/authorization/{id}`) and shows a message after a failed sign-in (`?error`) or a sign-out (`?logout`). |
 | `none` | All endpoints are public. For development only; the `dev` profile uses it. |
 
 Any other value makes startup fail.
@@ -562,7 +563,7 @@ These are differences between the intended behaviour and the code, checked again
 | ISS-09 | UI | Tabler theme CSS is loaded, but the theme script isn't included and there is no toggle, so there's no working dark mode. The PWA manifest has empty `name`/`short_name` and no `start_url`. | Fixed: theme toggle and named manifest |
 | ISS-10 | Build | `Containerfile` copies `target/app.jar`, but the pom sets no `finalName`, so the jar is called `picstr-<version>.jar`; the image also lacks GraphicsMagick. The `Makefile` calls `npm run css-build`, which doesn't exist. | Fixed |
 | ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Open |
-| ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. | Open |
+| ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. | Fixed: `/login` page listing the configured providers |
 | ISS-13 | Operations | There is no health endpoint (no Spring Boot Actuator) for container orchestration. | Fixed: `/actuator/health` |
 | ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. | Open |
 
@@ -576,7 +577,7 @@ These are differences between the intended behaviour and the code, checked again
 | RM-04 | Gallery-wide map view of all geotagged photos | Gap (ISS-14) |
 | RM-05 | ~~Health and readiness endpoints~~ (done, NFR-11) | Gap (ISS-13) |
 | RM-06 | ~~Protect files of archived photos~~ (done, ISS-05) | Gap (ISS-05) |
-| RM-07 | Login page for `oauth2` mode listing the configured providers | Gap (ISS-12) |
+| RM-07 | ~~Login page for `oauth2` mode~~ (done, ISS-12) | Gap (ISS-12) |
 | RM-08 | Process uploads (HEIC conversion, thumbnail) asynchronously and stream storage reads instead of buffering them | NFR-06 |
 | RM-09 | Re-enable CSRF protection (htmx can send the token via `hx-headers`) | §9 |
 | RM-10 | Move to Flyway 13 once Spring Boot manages it | Dependencies |

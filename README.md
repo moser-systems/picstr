@@ -355,6 +355,8 @@ app.security.auth-mode=oauth2  # OpenID Connect / OAuth2 login
 app.security.auth-mode=none    # Disable authentication entirely
 ```
 
+In `oauth2` mode, unauthenticated users are sent to `/login`, which shows one sign-in button per configured provider (see `application-oidc-microsoft.properties` for a Microsoft Entra ID example).
+
 ### Disabling Authentication (Development/Testing)
 
 To disable authentication entirely (useful for development or testing), set:
