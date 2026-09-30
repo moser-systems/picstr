@@ -36,7 +36,7 @@ public class PhotoAssetController {
         var mediaType = parseMediaTypeOrDefault(storageObject.contentType());
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic())
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePrivate())
                 .contentType(mediaType)
                 .contentLength(storageObject.contentLength())
                 .body(new InputStreamResource(storageObject.content()));

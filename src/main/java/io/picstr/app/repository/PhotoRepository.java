@@ -34,4 +34,6 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
 	Optional<Photo> findByIdAndDeleteDateIsNotNull(Long id);
 
 	Optional<Photo> findByInternalFilename(String internalFilename);
+
+	boolean existsByInternalFilenameAndDeleteDateIsNotNull(String internalFilename);
 }
