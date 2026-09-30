@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -188,6 +189,52 @@ class PhotoControllerTest {
         assertThat(model.getAttribute("pageData")).isEqualTo(page);
     }
 
+    @Test
+    void bulk_runsActionAndReportsResult() {
+        var controller = uploadController();
+        when(photoService.bulkAddTags(List.of(1L, 2L), List.of("beach")))
+                .thenReturn(new PhotoService.BulkResult(1, 1));
+        var redirects = new RedirectAttributesModelMap();
+
+        var view = controller.bulk(List.of(1L, 2L), "addTags", null, List.of("beach"), "/photos/search?q=x",
+                redirects, Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("redirect:/photos/search?q=x");
+        assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("Tags added to 1 photos.");
+        assertThat(redirects.getFlashAttributes().get("warning"))
+                .isEqualTo("1 photo(s) skipped because they would have more than 5 tags.");
+    }
+
+    @Test
+    void bulk_ignoresExternalReturnUrl() {
+        var controller = uploadController();
+        when(photoService.bulkArchive(List.of(1L))).thenReturn(new PhotoService.BulkResult(1, 0));
+
+        var view = controller.bulk(List.of(1L), "archive", null, null, "https://evil.example",
+                new RedirectAttributesModelMap(), Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("redirect:/photos");
+    }
+
+    @Test
+    void bulk_requiresSelectionAndKnownActionWithinLimit() {
+        var controller = uploadController();
+
+        var none = new RedirectAttributesModelMap();
+        controller.bulk(List.of(), "archive", null, null, "/photos", none, Locale.ENGLISH);
+        assertThat(none.getFlashAttributes().get("error")).isEqualTo("msg.bulk.noSelection");
+
+        var tooMany = new RedirectAttributesModelMap();
+        var ids = java.util.stream.LongStream.rangeClosed(1, PhotoController.MAX_BULK_PHOTOS + 1).boxed().toList();
+        controller.bulk(ids, "archive", null, null, "/photos", tooMany, Locale.ENGLISH);
+        assertThat(tooMany.getFlashAttributes().get("error")).isEqualTo("Please select at most 100 photos.");
+
+        var unknown = new RedirectAttributesModelMap();
+        controller.bulk(List.of(1L), "delete", null, null, "/photos", unknown, Locale.ENGLISH);
+        assertThat(unknown.getFlashAttributes().get("error")).isEqualTo("Unknown bulk action: delete");
+        verifyNoInteractions(photoService);
+    }
+
     private PhotoController uploadController() {
         var controller = new PhotoController();
         ReflectionTestUtils.setField(controller, "service", photoService);
@@ -195,6 +242,10 @@ class PhotoControllerTest {
         var messages = new StaticMessageSource();
         messages.addMessage("msg.photo.upload.successMany", Locale.ENGLISH, "{0} photos uploaded.");
         messages.addMessage("msg.photo.upload.partial", Locale.ENGLISH, "{0} photo(s) could not be uploaded: {1}");
+        messages.addMessage("msg.bulk.addTags", Locale.ENGLISH, "Tags added to {0} photos.");
+        messages.addMessage("msg.bulk.archive", Locale.ENGLISH, "{0} photos archived.");
+        messages.addMessage("msg.bulk.tagLimit", Locale.ENGLISH, "{0} photo(s) skipped because they would have more than {1} tags.");
+        messages.addMessage("msg.bulk.tooMany", Locale.ENGLISH, "Please select at most {0} photos.");
         ReflectionTestUtils.setField(controller, "messageSource", messages);
         return controller;
     }

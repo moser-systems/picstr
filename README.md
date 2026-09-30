@@ -45,6 +45,7 @@ Self-hosted and open-source, so you have full control over your data and can con
 
 ### Core
 - **Camera capture** – a "Take photo" button opens the phone camera directly
+- **Bulk management** – select photos in any gallery view to archive, restore, re-categorise or tag them at once
 - **Search** – find photos by filename, description, category or tag, with category, tag and location filters
 - **Bulk upload** – pick up to 20 photos at once; category, tags and description apply to all of them
 - **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
@@ -533,6 +534,5 @@ Contributions, bug reports and feature requests are welcome! Please open an issu
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Future Enhancements
-- Bulk management (archive, re-categorise and tag several photos at once)
 - Search by GPS area
 - API endpoints for integration with other applications or mobile clients
