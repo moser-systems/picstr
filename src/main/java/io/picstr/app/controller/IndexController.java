@@ -25,6 +25,7 @@ public class IndexController extends BaseController {
         model.addAttribute("latestPhotos", photoService.latest());
         model.addAttribute("categories", photoService.categories());
         model.addAttribute("allTags", tagService.list());
+        model.addAttribute("bulkEnabled", true);
         return "index";
     }
 }

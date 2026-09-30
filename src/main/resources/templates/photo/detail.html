@@ -79,6 +79,9 @@
         <div class="row g-4">
             <div class="col-12" th:if="${photo.processing or photo.processingFailed}">
                 <div class="alert mb-0" th:classappend="${photo.processingFailed} ? ' alert-warning' : ' alert-info'" role="alert"
+                     th:attr="hx-get=${photo.processing} ? @{|/photos/${photo.id}/processed|} : null,
+                              hx-trigger=${photo.processing} ? 'every 3s' : null,
+                              hx-swap=${photo.processing} ? 'none' : null"
                      th:text="${photo.processingFailed} ? #{msg.photo.processingFailed} : #{msg.photo.processing}">
                     This photo is still being processed.
                 </div>
