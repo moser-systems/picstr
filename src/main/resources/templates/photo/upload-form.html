@@ -18,6 +18,9 @@
         <div class="card">
             <div class="card-body">
                 <form th:action="@{/photos/upload}" th:object="${uploadForm}" method="post" enctype="multipart/form-data">
+                    <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                        <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Error</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label" for="image" th:text="#{label.image}">Image</label>
                         <input id="image" type="file" class="form-control"

@@ -102,7 +102,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-UPL-07 | If the image contains EXIF GPS data, latitude and longitude are extracted and **override** any coordinates submitted with the form. |
 | FR-UPL-08 | The form has a "use current location" button that fills the read-only latitude/longitude fields from the browser's Geolocation API (7 decimal places). |
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
-| FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically. |
+| FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically (2 to 100 characters, FR-TAX-02). Category and tags are checked before anything is written to storage. |
 | FR-UPL-11 | The description is optional, at most 1000 characters. |
 | FR-UPL-12 | After a successful upload, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message. The chosen category and tags stay selected for the next photo. |
 
@@ -144,7 +144,7 @@ Categories and tags behave the same unless noted.
 | ID | Requirement |
 |---|---|
 | FR-TAX-01 | Categories (`/categories`) and tags (`/tags`) can be listed (sorted by name; default page sizes 20 and 10), viewed, created, edited and deleted. |
-| FR-TAX-02 | Names are trimmed and stored in lower case. They must be unique regardless of case. Maximum length is 100; **category** names need at least 3 characters. |
+| FR-TAX-02 | Names are trimmed and stored in lower case. They must be unique regardless of case and 2 to 100 characters long after trimming (`NameRules`). The same rule applies to tags created on the fly during upload and edit; existing names are left as they are. |
 | FR-TAX-03 | Each item has a colour from the fixed Tabler palette: `blue`, `azure`, `indigo`, `purple`, `pink`, `red`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`. The default is `blue`. |
 | FR-TAX-04 | Each item has an optional description (≤ 1000). |
 | FR-TAX-05 | A category or tag that is still used by photos (including archived photos) cannot be deleted; the user sees a "still in use" message. |
@@ -414,8 +414,8 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 |---|---|
 | `UploadForm` | `image` required; `category` not blank; `description` ≤ 1000; `latitude`/`longitude` free text, must parse as decimals; `tags` list |
 | `PhotoUpdateForm` | `originalFilename` not blank, ≤ 255; `category` not blank; `description` ≤ 1000; coordinates and tags as above |
-| `CategoryForm` | `name` 3…100; `description` ≤ 1000; `color` required, from the palette (FR-TAX-03) |
-| `TagForm` | `name` ≤ 100, not blank; `description` ≤ 1000; `color` required, from the palette |
+| `CategoryForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette (FR-TAX-03) |
+| `TagForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette |
 
 ### 7.5 Flash messages
 
@@ -559,7 +559,7 @@ These are differences between the intended behaviour and the code, checked again
 | ISS-05 | Security | Archived photos are hidden from every view (FR-ARC-02), but their files remain publicly reachable under `/assets/`. | Fixed: archived files require login; assets cached as `private` |
 | ISS-06 | Upload | The upload POST shows the form again instead of redirecting, so refreshing the browser can submit the same upload twice. | Fixed: POST/Redirect/GET |
 | ISS-07 | Upload | The 5-tag limit (FR-UPL-10) is enforced only in the browser. | Fixed: `@Size(max = 5)` on both forms |
-| ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. | Partly fixed: page size is now 12; name-length rules still differ |
+| ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. | Fixed: page size 12 everywhere; names 2–100 characters for both |
 | ISS-09 | UI | Tabler theme CSS is loaded, but the theme script isn't included and there is no toggle, so there's no working dark mode. The PWA manifest has empty `name`/`short_name` and no `start_url`. | Fixed: theme toggle and named manifest |
 | ISS-10 | Build | `Containerfile` copies `target/app.jar`, but the pom sets no `finalName`, so the jar is called `picstr-<version>.jar`; the image also lacks GraphicsMagick. The `Makefile` calls `npm run css-build`, which doesn't exist. | Fixed |
 | ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Fixed: thumbnail keys always end in `.jpg`; old keys migrated at startup |

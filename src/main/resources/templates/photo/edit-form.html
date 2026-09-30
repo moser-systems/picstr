@@ -18,6 +18,9 @@
         <div class="card">
             <div class="card-body">
                 <form th:action="@{|/photos/${photoId}|}" th:object="${photoUpdateForm}" method="post">
+                    <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                        <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Error</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label" for="originalFilename" th:text="#{label.photo.originalFilename}">Original filename</label>
                         <input id="originalFilename" type="text" class="form-control"

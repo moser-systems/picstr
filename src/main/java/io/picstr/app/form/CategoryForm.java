@@ -1,5 +1,7 @@
 package io.picstr.app.form;
 
+import io.picstr.app.model.NameRules;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -11,7 +13,7 @@ import lombok.Setter;
 public class CategoryForm {
 
     @NotBlank()
-    @Size(min = 3, max = 100)
+    @Size(min = NameRules.MIN_LENGTH, max = NameRules.MAX_LENGTH)
     private String name;
 
     @Size(max = 1000)
