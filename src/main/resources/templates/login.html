@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="|#{label.login.title} - #{label.app.title}|">Sign in - PicStr</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/vendor/inter/inter.css">
+    <link rel="stylesheet" href="/vendor/tabler/css/tabler.min.css">
+    <link rel="stylesheet" href="/vendor/tabler/css/tabler-themes.min.css">
+    <style>
+        :root {
+            --tblr-font-sans-serif: "Inter Variable", sans-serif;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column antialiased">
+<script src="/vendor/tabler/js/tabler-theme.min.js"></script>
+<div class="page page-center">
+    <div class="container container-tight py-4">
+        <div class="text-center mb-4">
+            <img src="/logo_800x800_trans.png" alt="PicStr" height="96">
+        </div>
+        <div class="card card-md">
+            <div class="card-body">
+                <h2 class="h2 text-center mb-4" th:text="#{label.login.title}">Sign in</h2>
+                <div class="alert alert-danger" role="alert" th:if="${loginError}" th:text="#{msg.login.error}">
+                    Sign-in failed.
+                </div>
+                <div class="alert alert-success" role="alert" th:if="${loggedOut}" th:text="#{msg.login.logout}">
+                    You have been signed out.
+                </div>
+                <div class="d-grid gap-2">
+                    <a th:each="provider : ${providers}" th:href="${provider.url}" class="btn btn-primary w-100"
+                       th:text="#{label.login.with(${provider.name})}">Sign in with Provider</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
