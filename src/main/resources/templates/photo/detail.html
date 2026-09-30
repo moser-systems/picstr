@@ -77,6 +77,12 @@
 
     <div class="page-body">
         <div class="row g-4">
+            <div class="col-12" th:if="${photo.processing or photo.processingFailed}">
+                <div class="alert mb-0" th:classappend="${photo.processingFailed} ? ' alert-warning' : ' alert-info'" role="alert"
+                     th:text="${photo.processingFailed} ? #{msg.photo.processingFailed} : #{msg.photo.processing}">
+                    This photo is still being processed.
+                </div>
+            </div>
             <div class="col-md-5">
                 <div class="card">
                     <img th:src="@{|/assets/${photo.internalFilename}|}"

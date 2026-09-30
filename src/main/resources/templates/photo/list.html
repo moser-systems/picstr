@@ -47,8 +47,13 @@
                                th:value="${photo.id}" th:aria-label="|#{label.bulk.select}: ${photo.originalFilename}|">
                     </label>
                     <a th:href="@{|/photos/${photo.id}|}">
-                        <div th:title="${photo.originalFilename}" class="card-img-top img-responsive img-responsive-1x1"
+                        <div th:if="${photo.processingStatus.name() == 'READY'}" th:title="${photo.originalFilename}"
+                             class="card-img-top img-responsive img-responsive-1x1"
                              th:style="|background-image: url('/assets/${photo.thumbnailKey}')|">
+                        </div>
+                        <div th:unless="${photo.processingStatus.name() == 'READY'}" class="card-img-top img-responsive img-responsive-1x1 bg-secondary-lt position-relative" th:title="${photo.originalFilename}">
+                            <span class="position-absolute top-50 start-50 translate-middle text-secondary small text-center"
+                                  th:text="${photo.processingFailed} ? #{label.photo.processingFailed} : #{label.photo.processing}">Processing…</span>
                         </div>
                     </a>
                     <div class="card-body">

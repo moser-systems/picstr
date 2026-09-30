@@ -1,7 +1,6 @@
 package io.picstr.app.service;
 
 import java.io.InputStream;
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,13 +48,13 @@ public class S3StorageService implements StorageService {
                     .key(key)
                     .build());
 
-            var bytes = response.readAllBytes();
             var contentType = response.response().contentType();
             if (contentType == null) {
                 contentType = "application/octet-stream";
             }
 
-            return Optional.of(new StorageObject(new ByteArrayInputStream(bytes), bytes.length, contentType));
+            // Streamed from S3; the caller closes the stream, which releases the HTTP connection
+            return Optional.of(new StorageObject(response, response.response().contentLength(), contentType));
         } catch (NoSuchKeyException e) {
             return Optional.empty();
         } catch (S3Exception e) {

@@ -24,6 +24,7 @@ import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.model.Category;
 import io.picstr.app.model.NameRules;
 import io.picstr.app.model.Photo;
+import io.picstr.app.model.ProcessingStatus;
 import io.picstr.app.model.Tag;
 import io.picstr.app.model.ThumbnailKeys;
 import io.picstr.app.repository.CategoryRepository;
@@ -32,6 +33,7 @@ import io.picstr.app.repository.PhotoSpecifications;
 import io.picstr.app.repository.TagRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -62,7 +64,7 @@ public class PhotoService {
     private TagRepository tagRepository;
 
     @Autowired
-    private HeicHeifConversionService conversionService;
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * Stores one image with the shared metadata of the form (category, tags, description, coordinates).
@@ -87,14 +89,11 @@ public class PhotoService {
         var longitude = parseCoordinate(form.getLongitude());
 
         var originalFilename = StringUtils.hasText(file.getOriginalFilename()) ? file.getOriginalFilename() : "capture.jpg";
-        var fileExt = getFileExtension(originalFilename);
-        var randomizedFilename = UUID.randomUUID();
-        var storedExt = fileExt;
-        var storedContentType = contentType;
-        byte[] bytesToStore;
+        var storageKey = UUID.randomUUID() + getFileExtension(originalFilename);
+        byte[] imageBytes;
 
         try (var inputStream = file.getInputStream()) {
-            var imageBytes = inputStream.readAllBytes();
+            imageBytes = inputStream.readAllBytes();
 
             var geolocation = this.readGeoLocation(new ByteArrayInputStream(imageBytes));
             if (geolocation != null) {
@@ -104,32 +103,27 @@ public class PhotoService {
                 longitude = BigDecimal.valueOf(geolocation.getLongitude()).setScale(7, RoundingMode.HALF_UP);
             }
 
-            if (conversionService.isHeicOrHeif(contentType, originalFilename)) {
-                bytesToStore = conversionService.convertHeicToJpeg(imageBytes);
-                storedExt = ".jpg";
-                storedContentType = "image/jpeg";
-            } else {
-                bytesToStore = imageBytes;
-            }
-
-            storageService.upload(randomizedFilename + storedExt, new ByteArrayInputStream(bytesToStore), bytesToStore.length, storedContentType);
-            thumbnailService.createThumbnail(randomizedFilename + storedExt, new ByteArrayInputStream(bytesToStore), storedContentType);
-
+            // Store the original as uploaded; HEIC conversion and the thumbnail happen in the background
+            // (PhotoProcessingService) once this transaction has committed.
+            storageService.upload(storageKey, new ByteArrayInputStream(imageBytes), imageBytes.length, contentType);
         } catch (IOException | ImageProcessingException exception) {
             throw new IllegalStateException("Could not upload image", exception);
         }
 
         var photo = new Photo();
         photo.setOriginalFilename(originalFilename);
-        photo.setInternalFilename(randomizedFilename + storedExt);
-        photo.setContentType(storedContentType);
-        photo.setSizeBytes(bytesToStore.length);
+        photo.setInternalFilename(storageKey);
+        photo.setContentType(contentType);
+        photo.setSizeBytes(imageBytes.length);
+        photo.setProcessingStatus(ProcessingStatus.PROCESSING);
         photo.setDescription(normalizeDescription(form.getDescription()));
         photo.setLatitude(latitude);
         photo.setLongitude(longitude);
         photo.setCategory(category);
         photo.setTags(tags);
-        return photoRepository.save(photo);
+        var saved = photoRepository.save(photo);
+        eventPublisher.publishEvent(new PhotoUploadedEvent(saved.getId()));
+        return saved;
     }
 
     private GeoLocation readGeoLocation(InputStream stream) throws ImageProcessingException, IOException {
@@ -378,6 +372,10 @@ public class PhotoService {
 
         int archivedCount = 0;
         for (var photo : activePhotos) {
+            if (photo.getProcessingStatus() != ProcessingStatus.READY) {
+                // Thumbnail not created yet (or processing failed); nothing is missing
+                continue;
+            }
             var internalFilename = photo.getInternalFilename();
             var originalExists = storageService.exists(internalFilename);
             // A thumbnail under the legacy key still counts until ThumbnailKeyMigration has moved it
@@ -416,7 +414,12 @@ public class PhotoService {
             }
 
             try {
-                var hasRecord = photoRepository.findByInternalFilename(key).isPresent();
+                var record = photoRepository.findByInternalFilename(key);
+                if (record.isPresent() && record.get().getProcessingStatus() != ProcessingStatus.READY) {
+                    // Left to PhotoProcessingService
+                    continue;
+                }
+                var hasRecord = record.isPresent();
                 var thumbnailKey = ThumbnailKeys.forOriginal(key);
                 var hasThumbnail = storageService.exists(thumbnailKey);
                 if (hasRecord && hasThumbnail) {
@@ -428,7 +431,10 @@ public class PhotoService {
                     continue;
                 }
 
-                var bytes = originalObject.content().readAllBytes();
+                byte[] bytes;
+                try (var content = originalObject.content()) {
+                    bytes = content.readAllBytes();
+                }
 
                 if (!hasRecord) {
                     var photo = new Photo();

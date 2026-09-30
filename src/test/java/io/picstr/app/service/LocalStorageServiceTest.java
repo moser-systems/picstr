@@ -34,7 +34,11 @@ class LocalStorageServiceTest {
         upload("photo.jpg", "data");
 
         assertThat(Files.readString(base.resolve("photo.jpg"))).isEqualTo("data");
-        assertThat(storage.get("photo.jpg")).hasValueSatisfying(o -> assertThat(o.contentLength()).isEqualTo(4));
+        var object = storage.get("photo.jpg").orElseThrow();
+        assertThat(object.contentLength()).isEqualTo(4);
+        try (var content = object.content()) {
+            assertThat(new String(content.readAllBytes())).isEqualTo("data");
+        }
         assertThat(storage.listKeys()).containsExactly("photo.jpg");
 
         storage.delete("photo.jpg");

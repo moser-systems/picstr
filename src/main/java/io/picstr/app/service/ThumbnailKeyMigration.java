@@ -1,5 +1,7 @@
 package io.picstr.app.service;
 
+import java.io.IOException;
+
 import io.picstr.app.model.ThumbnailKeys;
 import io.picstr.app.repository.PhotoRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -50,10 +52,12 @@ public class ThumbnailKeyMigration {
                     continue;
                 }
                 var thumbnail = legacy.get();
-                storageService.upload(currentKey, thumbnail.content(), thumbnail.contentLength(), "image/jpeg");
+                try (var content = thumbnail.content()) {
+                    storageService.upload(currentKey, content, thumbnail.contentLength(), "image/jpeg");
+                }
                 storageService.delete(legacyKey);
                 migrated++;
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | IOException e) {
                 log.error("Failed to move thumbnail {} to {}", legacyKey, currentKey, e);
             }
         }

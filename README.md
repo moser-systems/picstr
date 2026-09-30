@@ -49,7 +49,7 @@ Self-hosted and open-source, so you have full control over your data and can con
 - **Search** – find photos by filename, description, category or tag, with category, tag and location filters, or within a map area
 - **Bulk upload** – pick up to 20 photos at once; category, tags and description apply to all of them
 - **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
-- **Automatic thumbnail generation** 
+- **Automatic thumbnail generation** – HEIC conversion and thumbnails run in the background, so uploads return quickly
 - **GPS extraction** – photos with GPS data are shown on their detail page and together on a clustered gallery map (`/photos/map`)
 - **Category & tag organisation** – colour-coded badges (Tabler palette) for both categories and tags
 - **Light and dark theme** – follows the system setting, with a toggle in the navbar
@@ -307,6 +307,14 @@ UPLOAD_MAX_REQUEST_SIZE=200MB   # per upload, up to 20 photos (default)
 
 ### Background jobs
 
+#### Upload processing
+
+HEIC conversion and thumbnails run on a background thread pool after the upload has been stored.
+
+```bash
+APP_PHOTO_PROCESSING_THREADS=2   # parallel conversions (default)
+```
+
 #### Archive purge
 
 Permanently removes archived photos (records + storage files) older than the retention window.
@@ -553,4 +561,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Future Enhancements
 
-See the roadmap in the [specification](docs/SPEC.md#112-roadmap), for example processing uploads in the background.
+See the roadmap in the [specification](docs/SPEC.md#112-roadmap).

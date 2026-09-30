@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -74,11 +76,25 @@ public class Photo {
     @Column(name = "delete_date")
     private Instant deleteDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "processing_status", nullable = false, length = 20)
+    private ProcessingStatus processingStatus = ProcessingStatus.READY;
+
     @PrePersist
     void onPrePersist() {
         if (uploadedAt == null) {
             uploadedAt = Instant.now();
         }
+    }
+
+    @Transient
+    public boolean isProcessing() {
+        return processingStatus == ProcessingStatus.PROCESSING;
+    }
+
+    @Transient
+    public boolean isProcessingFailed() {
+        return processingStatus == ProcessingStatus.FAILED;
     }
 
     @Transient

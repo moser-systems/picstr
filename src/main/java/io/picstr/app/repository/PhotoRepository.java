@@ -2,6 +2,7 @@ package io.picstr.app.repository;
 
 import io.picstr.app.model.Photo;
 import io.picstr.app.model.PhotoLocation;
+import io.picstr.app.model.ProcessingStatus;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -39,9 +40,12 @@ public interface PhotoRepository extends JpaRepository<Photo, Long>, JpaSpecific
 
 	Optional<Photo> findByInternalFilename(String internalFilename);
 
+	List<Photo> findByProcessingStatus(ProcessingStatus processingStatus);
+
 	boolean existsByInternalFilenameInAndDeleteDateIsNotNull(Collection<String> internalFilenames);
 
 	@Query("select new io.picstr.app.model.PhotoLocation(p.id, p.latitude, p.longitude, p.internalFilename, p.originalFilename)"
-			+ " from Photo p where p.deleteDate is null and p.latitude is not null and p.longitude is not null")
+			+ " from Photo p where p.deleteDate is null and p.latitude is not null and p.longitude is not null"
+			+ " and p.processingStatus = io.picstr.app.model.ProcessingStatus.READY")
 	List<PhotoLocation> findActiveLocations();
 }

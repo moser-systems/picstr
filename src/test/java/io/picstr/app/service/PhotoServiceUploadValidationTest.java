@@ -1,5 +1,6 @@
 package io.picstr.app.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -38,7 +39,7 @@ class PhotoServiceUploadValidationTest {
     private TagRepository tagRepository;
 
     @Mock
-    private HeicHeifConversionService conversionService;
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PhotoService photoService;
@@ -79,6 +80,34 @@ class PhotoServiceUploadValidationTest {
                 .hasMessageStartingWith("Invalid coordinate format");
 
         verifyNoInteractions(storageService, thumbnailService, photoRepository);
+    }
+
+    @Test
+    void upload_storesTheOriginalAsUploadedAndQueuesProcessing() throws Exception {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category("other")));
+        when(photoRepository.save(org.mockito.ArgumentMatchers.any(io.picstr.app.model.Photo.class))).thenAnswer(invocation -> {
+            io.picstr.app.model.Photo photo = invocation.getArgument(0);
+            photo.setId(42L);
+            return photo;
+        });
+        var heic = new MockMultipartFile("images", "IMG_1.HEIC", "image/heic", tinyJpeg());
+
+        var photo = photoService.upload(heic, form("1", List.of()));
+
+        assertThat(photo.getProcessingStatus()).isEqualTo(io.picstr.app.model.ProcessingStatus.PROCESSING);
+        assertThat(photo.getInternalFilename()).endsWith(".heic");
+        assertThat(photo.getContentType()).isEqualTo("image/heic");
+        org.mockito.Mockito.verify(storageService).upload(org.mockito.ArgumentMatchers.eq(photo.getInternalFilename()),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq((long) heic.getSize()), org.mockito.ArgumentMatchers.eq("image/heic"));
+        org.mockito.Mockito.verify(eventPublisher).publishEvent(new io.picstr.app.service.PhotoUploadedEvent(42L));
+        verifyNoInteractions(thumbnailService);
+    }
+
+    /** Real image bytes, so metadata extraction works; the name and type claim HEIC to check nothing is converted. */
+    private static byte[] tinyJpeg() throws java.io.IOException {
+        var out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2, 2, java.awt.image.BufferedImage.TYPE_INT_RGB), "jpg", out);
+        return out.toByteArray();
     }
 
     private static UploadForm form(String category, List<String> tags) {

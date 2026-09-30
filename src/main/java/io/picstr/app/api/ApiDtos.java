@@ -7,6 +7,7 @@ import java.util.List;
 
 import io.picstr.app.model.Category;
 import io.picstr.app.model.Photo;
+import io.picstr.app.model.ProcessingStatus;
 import io.picstr.app.model.Tag;
 import org.springframework.data.domain.Page;
 
@@ -30,7 +31,7 @@ public final class ApiDtos {
 
     public record PhotoDto(Long id, String originalFilename, String description, String contentType, long sizeBytes,
                            BigDecimal latitude, BigDecimal longitude, CategoryDto category, List<TagDto> tags,
-                           Instant uploadedAt, Instant archivedAt, boolean archived,
+                           Instant uploadedAt, Instant archivedAt, boolean archived, ProcessingStatus status,
                            String fileUrl, String thumbnailUrl) {
         static PhotoDto of(Photo photo) {
             var base = "/api/v1/photos/" + photo.getId();
@@ -39,7 +40,7 @@ public final class ApiDtos {
                     CategoryDto.of(photo.getCategory()),
                     photo.getTags().stream().sorted(Comparator.comparing(Tag::getName)).map(TagDto::of).toList(),
                     photo.getUploadedAt(), photo.getDeleteDate(), photo.getDeleteDate() != null,
-                    base + "/file", base + "/thumbnail");
+                    photo.getProcessingStatus(), base + "/file", base + "/thumbnail");
         }
     }
 

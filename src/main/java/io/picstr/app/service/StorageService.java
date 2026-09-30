@@ -8,6 +8,7 @@ public interface StorageService {
 
     void upload(String key, InputStream content, long contentLength, String contentType);
 
+    /** The caller must close {@link StorageObject#content()}; local and S3 storage stream it. */
     Optional<StorageObject> get(String key);
 
     /** Checks for an object without downloading it. Backends should override the fallback. */
