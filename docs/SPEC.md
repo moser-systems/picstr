@@ -75,7 +75,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 
 | ID | Use case | Actor | Related requirements |
 |---|---|---|---|
-| UC-01 | Capture a photo with the phone camera and upload it with category, tags, description and location | Field user | FR-UPL-* |
+| UC-01 | Capture a photo with the phone camera, or pick several photos at once, and upload them with category, tags, description and location | Field user | FR-UPL-* |
 | UC-02 | Browse the latest photos and the paginated gallery | Curator | FR-GAL-* |
 | UC-03 | Filter the gallery by category or tag | Curator | FR-GAL-04, FR-GAL-05 |
 | UC-04 | View a photo's details, see it on a map, download the original; browse all photos on a map | Curator | FR-DET-01…04, FR-DET-06 |
@@ -93,18 +93,18 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 
 | ID | Requirement |
 |---|---|
-| FR-UPL-01 | The upload form (`GET /photos/upload`) offers a file input with `accept="image/*"` and `capture="environment"`, so mobile browsers open the rear camera directly. |
+| FR-UPL-01 | The upload form (`GET /photos/upload`) offers two file inputs: "Take photo" (`accept="image/*"`, `capture="environment"`, so mobile browsers open the rear camera) and "Choose photos" (`multiple`). The form shows how many photos are selected. |
 | FR-UPL-02 | The server accepts only files whose content type starts with `image/`. Supported formats are JPEG, PNG, GIF, WebP and HEIC/HEIF. |
-| FR-UPL-03 | The maximum file and request size is 20 MB (`spring.servlet.multipart.max-file-size` / `max-request-size`). |
+| FR-UPL-03 | One upload takes 1 to 20 photos (`UploadForm.MAX_IMAGES`). Each photo may be up to 20 MB, a whole request up to 200 MB (`UPLOAD_MAX_FILE_SIZE`, `UPLOAD_MAX_REQUEST_SIZE`). |
 | FR-UPL-04 | HEIC/HEIF files, recognised by a content type containing `heic`/`heif` or a `.heic`/`.heif` extension, are converted to JPEG with GraphicsMagick before storage. They are stored with extension `.jpg` and content type `image/jpeg`. |
 | FR-UPL-05 | The original is stored under the key `<random UUID><original extension>`. The user's original filename is kept as metadata. If the browser sends no filename, `capture.jpg` is used. |
 | FR-UPL-06 | A thumbnail is generated for every upload: it fits within 256×256 px with the aspect ratio kept, JPEG at quality 85, stored under a key that always ends in `.jpg`: `thumb_<internal filename>` for JPEG originals, `thumb_<internal filename>.jpg` otherwise (see §8.2). |
-| FR-UPL-07 | If the image contains EXIF GPS data, latitude and longitude are extracted and **override** any coordinates submitted with the form. |
+| FR-UPL-07 | If an image contains EXIF GPS data, its latitude and longitude are extracted and **override** the coordinates submitted with the form, for that image only. |
 | FR-UPL-08 | The form has a "use current location" button that fills the read-only latitude/longitude fields from the browser's Geolocation API (7 decimal places). |
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
 | FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically (2 to 100 characters, FR-TAX-02). Category and tags are checked before anything is written to storage. |
 | FR-UPL-11 | The description is optional, at most 1000 characters. |
-| FR-UPL-12 | After a successful upload, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message. The chosen category and tags stay selected for the next photo. |
+| FR-UPL-12 | Category, tags, description and coordinates apply to every photo of an upload. Each photo is stored in its own transaction, so a failing file doesn't undo the others. If at least one photo was stored, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message and, if some files failed, a warning naming them; category and tags stay selected. If every file fails, the form is shown again with the errors. |
 
 ### 3.2 Gallery (GAL)
 
@@ -188,7 +188,7 @@ Categories and tags behave the same unless noted.
 | NFR-03 | **Deployment.** Distributed as a container image for `linux/amd64` and `linux/arm64` on `ghcr.io/moser-systems/picstr`. |
 | NFR-04 | **Schema management.** The database schema is owned by Flyway migrations. Hibernate never changes the schema (`ddl-auto=none`). |
 | NFR-05 | **Security.** Every page except public static resources and assets requires authentication unless it is explicitly turned off (see [§9](#9-security)). |
-| NFR-06 | **Resource usage (current behaviour).** An upload is processed on the request thread: EXIF parsing, optional HEIC conversion, storage write and thumbnail generation all run in sequence. Uploaded images and storage reads are held fully in memory; the 20 MB upload limit caps the size of an upload. Missing-files detection only checks for existence. Reconciliation lists every key and downloads an original only when its record or thumbnail is missing. |
+| NFR-06 | **Resource usage (current behaviour).** An upload is processed on the request thread: EXIF parsing, optional HEIC conversion, storage write and thumbnail generation all run in sequence. Uploaded images and storage reads are held fully in memory; the 20 MB per-photo limit caps the size of each file, and a bulk upload holds at most one photo in memory at a time. Missing-files detection only checks for existence. Reconciliation lists every key and downloads an original only when its record or thumbnail is missing. |
 | NFR-07 | **Quality gate.** CI runs the test suite on every push and pull request and reports JaCoCo coverage on PRs: at least 40 % overall and 60 % on changed files. |
 | NFR-08 | **External runtime dependency.** The GraphicsMagick `gm` binary must be installed for thumbnails and HEIC conversion. The official container image includes it. |
 | NFR-09 | **Self-contained frontend.** All scripts, styles and fonts (including the Inter font) are served from the application; pages make no requests to third-party hosts, except OpenStreetMap tiles on the photo map. |
@@ -415,7 +415,7 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 
 | Form | Constraints |
 |---|---|
-| `UploadForm` | `image` required; `category` not blank; `description` ≤ 1000; `latitude`/`longitude` free text, must parse as decimals; `tags` list |
+| `UploadForm` | `images` 1…20 non-empty files (checked in the controller); `category` not blank; `description` ≤ 1000; `latitude`/`longitude` free text, must parse as decimals; `tags` list |
 | `PhotoUpdateForm` | `originalFilename` not blank, ≤ 255; `category` not blank; `description` ≤ 1000; coordinates and tags as above |
 | `CategoryForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette (FR-TAX-03) |
 | `TagForm` | `name` 2…100; `description` ≤ 1000; `color` required, from the palette |
@@ -520,7 +520,7 @@ Every property can also be set as an environment variable. See the [README](../R
 | | `app.photo.archive.purge-cron` | `APP_PHOTO_ARCHIVE_PURGE_CRON` | `0 0 3 * * *` |
 | | `app.photo.missing-files.detection-enabled` / `-cron` | `APP_PHOTO_MISSING_FILES_DETECTION_ENABLED` / `_CRON` | `true` / `0 0 4 * * *` |
 | | `app.photo.reconcile.enabled` / `.cron` | `APP_PHOTO_RECONCILE_ENABLED` / `_CRON` | `true` / `0 15 4 * * *` |
-| Uploads | `spring.servlet.multipart.max-file-size` / `max-request-size` | — | `20MB` |
+| Uploads | `spring.servlet.multipart.max-file-size` / `max-request-size` | `UPLOAD_MAX_FILE_SIZE` / `UPLOAD_MAX_REQUEST_SIZE` | `20MB` / `200MB` |
 
 ### 10.2 Profiles
 
@@ -574,7 +574,7 @@ These are differences between the intended behaviour and the code, checked again
 
 | ID | Item | Source |
 |---|---|---|
-| RM-01 | Bulk upload and bulk management (multi-select archive, re-categorise, tag) | README |
+| RM-01 | ~~Bulk upload~~ (done, FR-UPL-01/03/12); bulk management (multi-select archive, re-categorise, tag) still open | README |
 | RM-02 | Search by filename, description, category, tags and GPS coordinates | README |
 | RM-03 | API endpoints for integration with other applications and mobile clients | README |
 | RM-04 | ~~Gallery-wide map view of all geotagged photos~~ (done, FR-DET-06) | Gap (ISS-14) |

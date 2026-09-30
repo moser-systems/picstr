@@ -44,7 +44,8 @@ Self-hosted and open-source, so you have full control over your data and can con
 ## Features
 
 ### Core
-- **Camera capture** – uses for direct mobile camera access
+- **Camera capture** – a "Take photo" button opens the phone camera directly
+- **Bulk upload** – pick up to 20 photos at once; category, tags and description apply to all of them
 - **Photo upload** – supports JPEG, PNG, GIF, WebP and HEIC/HEIF (auto-converted to JPEG on upload)
 - **Automatic thumbnail generation** 
 - **GPS extraction** – photos with GPS data are shown on their detail page and together on a clustered gallery map (`/photos/map`)
@@ -295,9 +296,9 @@ APP_STORAGE_FTP_BASE_PATH=/picstr/uploads
 
 ### File upload size limits
 
-```properties
-spring.servlet.multipart.max-file-size=20MB
-spring.servlet.multipart.max-request-size=20MB
+```bash
+UPLOAD_MAX_FILE_SIZE=20MB       # per photo (default)
+UPLOAD_MAX_REQUEST_SIZE=200MB   # per upload, up to 20 photos (default)
 ```
 
 ---
@@ -531,6 +532,6 @@ Contributions, bug reports and feature requests are welcome! Please open an issu
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Future Enhancements
-- Bulk upload and management features
+- Bulk management (archive, re-categorise and tag several photos at once)
 - Search functionality by filename, description, category, tags, and GPS coordinates
 - API endpoints for integration with other applications or mobile clients

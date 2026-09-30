@@ -1,10 +1,15 @@
 package io.picstr.app.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Locale;
 
 import io.picstr.app.form.UploadForm;
 import io.picstr.app.model.Photo;
@@ -17,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.support.StaticMessageSource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
@@ -71,28 +78,114 @@ class PhotoControllerTest {
 
     @Test
     void upload_redirectsAfterSuccessAndKeepsCategoryAndTags() {
-        var controller = new PhotoController();
-        ReflectionTestUtils.setField(controller, "service", photoService);
-        ReflectionTestUtils.setField(controller, "tagService", tagService);
-
-        var form = new UploadForm();
-        form.setCategory("travel");
-        form.setTags(List.of("beach"));
+        var controller = uploadController();
+        var image = image("a.jpg");
+        var form = uploadForm(image);
         form.setDescription("sunset");
-        var bindingResult = new BeanPropertyBindingResult(form, "uploadForm");
-        var model = new ExtendedModelMap();
         var redirects = new RedirectAttributesModelMap();
 
-        var view = controller.upload(form, bindingResult, model, redirects);
+        var view = controller.upload(form, bindingResult(form), new ExtendedModelMap(), redirects, Locale.ENGLISH);
 
         assertThat(view).isEqualTo("redirect:/photos/upload");
-        verify(photoService).upload(form);
+        verify(photoService).upload(image, form);
         var nextForm = (UploadForm) redirects.getFlashAttributes().get("uploadForm");
         assertThat(nextForm.getCategory()).isEqualTo("travel");
         assertThat(nextForm.getTags()).containsExactly("beach");
         assertThat(nextForm.getDescription()).isNull();
-        assertThat(nextForm.getImage()).isNull();
+        assertThat(nextForm.getImages()).isEmpty();
         assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("msg.photo.upload.success");
+    }
+
+    @Test
+    void upload_storesEveryImageAndReportsPartialFailures() {
+        var controller = uploadController();
+        var first = image("a.jpg");
+        var broken = image("broken.jpg");
+        var third = image("c.jpg");
+        var form = uploadForm(first, broken, third);
+        lenient().doThrow(new IllegalStateException("Could not upload image")).when(photoService).upload(broken, form);
+        var redirects = new RedirectAttributesModelMap();
+
+        var view = controller.upload(form, bindingResult(form), new ExtendedModelMap(), redirects, Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("redirect:/photos/upload");
+        verify(photoService).upload(first, form);
+        verify(photoService).upload(third, form);
+        assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("2 photos uploaded.");
+        assertThat(redirects.getFlashAttributes().get("warning"))
+                .isEqualTo("1 photo(s) could not be uploaded: broken.jpg: Could not upload image");
+    }
+
+    @Test
+    void upload_showsFormWithErrorsWhenEveryImageFails() {
+        var controller = uploadController();
+        var image = image("a.jpg");
+        var form = uploadForm(image);
+        doThrow(new IllegalArgumentException("Unknown category id: 9")).when(photoService).upload(image, form);
+        var bindingResult = bindingResult(form);
+
+        var view = controller.upload(form, bindingResult, new ExtendedModelMap(), new RedirectAttributesModelMap(), Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("photo/upload-form");
+        assertThat(bindingResult.getGlobalErrors()).singleElement()
+                .satisfies(error -> assertThat(error.getDefaultMessage()).isEqualTo("a.jpg: Unknown category id: 9"));
+    }
+
+    @Test
+    void upload_requiresAtLeastOneImage() {
+        var controller = uploadController();
+        var form = uploadForm(new MockMultipartFile("images", "", "application/octet-stream", new byte[0]));
+        var bindingResult = bindingResult(form);
+
+        var view = controller.upload(form, bindingResult, new ExtendedModelMap(), new RedirectAttributesModelMap(), Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("photo/upload-form");
+        assertThat(bindingResult.getFieldError("images").getCode()).isEqualTo("msg.photo.images.required");
+        verify(photoService, never()).upload(any(), any());
+    }
+
+    @Test
+    void upload_rejectsMoreThanTheMaximumNumberOfImages() {
+        var controller = uploadController();
+        var images = new MockMultipartFile[UploadForm.MAX_IMAGES + 1];
+        for (int i = 0; i < images.length; i++) {
+            images[i] = image("img" + i + ".jpg");
+        }
+        var form = uploadForm(images);
+        var bindingResult = bindingResult(form);
+
+        var view = controller.upload(form, bindingResult, new ExtendedModelMap(), new RedirectAttributesModelMap(), Locale.ENGLISH);
+
+        assertThat(view).isEqualTo("photo/upload-form");
+        assertThat(bindingResult.getFieldError("images").getCode()).isEqualTo("msg.photo.images.max");
+        verify(photoService, never()).upload(any(), any());
+    }
+
+    private PhotoController uploadController() {
+        var controller = new PhotoController();
+        ReflectionTestUtils.setField(controller, "service", photoService);
+        ReflectionTestUtils.setField(controller, "tagService", tagService);
+        var messages = new StaticMessageSource();
+        messages.addMessage("msg.photo.upload.successMany", Locale.ENGLISH, "{0} photos uploaded.");
+        messages.addMessage("msg.photo.upload.partial", Locale.ENGLISH, "{0} photo(s) could not be uploaded: {1}");
+        ReflectionTestUtils.setField(controller, "messageSource", messages);
+        return controller;
+    }
+
+    private static MockMultipartFile image(String name) {
+        return new MockMultipartFile("images", name, "image/jpeg", new byte[] {1, 2, 3});
+    }
+
+    private static UploadForm uploadForm(MockMultipartFile... images) {
+        var form = new UploadForm();
+        form.setCategory("travel");
+        form.setTags(List.of("beach"));
+        form.setImages(List.of(images));
+        return form;
+    }
+
+    private static BeanPropertyBindingResult bindingResult(UploadForm form) {
+        return new BeanPropertyBindingResult(form, "uploadForm");
     }
 
     @Test

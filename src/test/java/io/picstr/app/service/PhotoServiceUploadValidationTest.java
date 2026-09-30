@@ -43,12 +43,14 @@ class PhotoServiceUploadValidationTest {
     @InjectMocks
     private PhotoService photoService;
 
+    private static final MockMultipartFile IMAGE = new MockMultipartFile("images", "a.jpg", "image/jpeg", new byte[] {1, 2, 3});
+
     @Test
     void upload_rejectsTooShortNewTagBeforeWritingToStorage() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category("other")));
         when(tagRepository.findByNameIgnoreCase("x")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> photoService.upload(form("1", List.of("x"))))
+        assertThatThrownBy(() -> photoService.upload(IMAGE, form("1", List.of("x"))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Tag name must be between 2 and 100 characters");
 
@@ -59,16 +61,28 @@ class PhotoServiceUploadValidationTest {
     void upload_rejectsUnknownCategoryBeforeWritingToStorage() {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> photoService.upload(form("99", List.of())))
+        assertThatThrownBy(() -> photoService.upload(IMAGE, form("99", List.of())))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unknown category id: 99");
 
         verifyNoInteractions(storageService, thumbnailService, photoRepository);
     }
 
+    @Test
+    void upload_rejectsInvalidCoordinateBeforeWritingToStorage() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category("other")));
+        var form = form("1", List.of());
+        form.setLatitude("north");
+
+        assertThatThrownBy(() -> photoService.upload(IMAGE, form))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Invalid coordinate format");
+
+        verifyNoInteractions(storageService, thumbnailService, photoRepository);
+    }
+
     private static UploadForm form(String category, List<String> tags) {
         var form = new UploadForm();
-        form.setImage(new MockMultipartFile("image", "a.jpg", "image/jpeg", new byte[] {1, 2, 3}));
         form.setCategory(category);
         form.setTags(tags);
         return form;
