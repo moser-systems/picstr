@@ -9,6 +9,7 @@ import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.form.UploadForm;
 import io.picstr.app.model.Photo;
 import io.picstr.app.model.Tag;
+import io.picstr.app.service.PhotoProcessingService;
 import io.picstr.app.service.PhotoService;
 import io.picstr.app.service.TagService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,6 +45,9 @@ public class PhotoController extends BaseController {
 
     @Autowired
     private MessageSource messageSource;
+
+    @Autowired
+    private PhotoProcessingService processingService;
 
     @GetMapping("")
     public String list(@RequestParam(defaultValue = "0") int page,
@@ -93,6 +97,7 @@ public class PhotoController extends BaseController {
                 case "category" -> service.bulkSetCategory(ids, category);
                 case "addTags" -> service.bulkAddTags(ids, tags);
                 case "removeTags" -> service.bulkRemoveTags(ids, tags);
+                case "retry" -> processingService.retry(ids);
                 default -> throw new IllegalArgumentException("Unknown bulk action: " + action);
             };
             redirectAttributes.addFlashAttribute("success",
@@ -211,6 +216,18 @@ public class PhotoController extends BaseController {
         model.addAttribute("photo", photo);
         model.addAttribute("bulkEnabled", true);
         return "photo/list :: photoCard(photo=${photo})";
+    }
+
+    @PostMapping("/{id}/retry-processing")
+    public String retryProcessing(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            processingService.retry(id);
+            redirectAttributes.addFlashAttribute("success", "msg.photo.retry.success");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        var photo = service.getAny(id);
+        return "redirect:" + (photo.getDeleteDate() != null ? "/photos/archive/" : "/photos/") + id;
     }
 
     /** Polled by the detail page while processing: 204, then 200 with HX-Refresh so htmx reloads the page. */

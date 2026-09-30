@@ -14,6 +14,7 @@ import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.form.UploadForm;
 import io.picstr.app.model.Photo;
 import io.picstr.app.model.ThumbnailKeys;
+import io.picstr.app.service.PhotoProcessingService;
 import io.picstr.app.service.PhotoService;
 import io.picstr.app.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,10 +44,13 @@ public class PhotoApiController {
 
     private final PhotoService photoService;
     private final StorageService storageService;
+    private final PhotoProcessingService processingService;
 
-    public PhotoApiController(PhotoService photoService, StorageService storageService) {
+    public PhotoApiController(PhotoService photoService, StorageService storageService,
+                              PhotoProcessingService processingService) {
         this.photoService = photoService;
         this.storageService = storageService;
+        this.processingService = processingService;
     }
 
     @GetMapping
@@ -132,9 +136,18 @@ public class PhotoApiController {
         photoService.restore(id);
     }
 
+    @PostMapping("/{id}/retry")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Retry processing of a photo whose status is FAILED",
+            description = "Sets the status back to PROCESSING and queues it; poll GET /photos/{id} for the result.")
+    public void retry(@PathVariable Long id) {
+        processingService.retry(id);
+    }
+
     @PostMapping("/bulk")
     @Operation(summary = "Run one action on up to 100 photos",
-            description = "action: archive, restore, category (needs category), addTags or removeTags (need tags).")
+            description = "action: archive, restore, category (needs category), addTags or removeTags (need tags), "
+                    + "retry (failed processing).")
     public PhotoService.BulkResult bulk(@RequestBody BulkRequest request) {
         var ids = request.ids();
         if (ids == null || ids.isEmpty() || ids.size() > MAX_PAGE_SIZE) {
@@ -147,6 +160,7 @@ public class PhotoApiController {
             case "category" -> photoService.bulkSetCategory(ids, request.category());
             case "addTags" -> photoService.bulkAddTags(ids, request.tags());
             case "removeTags" -> photoService.bulkRemoveTags(ids, request.tags());
+            case "retry" -> processingService.retry(ids);
             default -> throw new IllegalArgumentException("Unknown bulk action: " + action);
         };
     }

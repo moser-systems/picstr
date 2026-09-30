@@ -105,7 +105,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
 | FR-UPL-10 | Tags are optional, at most 5 (checked in the browser and on the server). The tag picker (Tom Select) allows creating new tags on the fly. Tag names that don't exist yet are created on the server automatically (2 to 100 characters, FR-TAX-02). Category and tags are checked before anything is written to storage. |
 | FR-UPL-11 | The description is optional, at most 1000 characters. |
-| FR-UPL-13 | Uploads are processed in the background: the request only validates, reads EXIF GPS, stores the original and saves the photo with status `PROCESSING`. After the transaction commits, a worker pool (`APP_PHOTO_PROCESSING_THREADS`, default 2) converts HEIC and creates the thumbnail, then sets `READY`, or `FAILED` on errors (the original is kept as uploaded; a converted copy is removed). Photos still `PROCESSING` at startup are processed again. Cards and archive rows show "Processing…"/"Processing failed" instead of the thumbnail, the detail page shows a notice (processing cards and the notice poll every 3 s and update themselves when the photo is done), the API reports `status`, and the gallery map only shows `READY` photos. |
+| FR-UPL-13 | Uploads are processed in the background: the request only validates, reads EXIF GPS, stores the original and saves the photo with status `PROCESSING`. After the transaction commits, a worker pool (`APP_PHOTO_PROCESSING_THREADS`, default 2) converts HEIC and creates the thumbnail, then sets `READY`, or `FAILED` on errors (the original is kept as uploaded; a converted copy is removed). Photos still `PROCESSING` at startup are processed again. Failed photos can be retried from the detail page ("Retry processing"), with the bulk action `retry`, or via `POST /api/v1/photos/{id}/retry`; only `FAILED` photos are requeued. Cards and archive rows show "Processing…"/"Processing failed" instead of the thumbnail, the detail page shows a notice (processing cards and the notice poll every 3 s and update themselves when the photo is done), the API reports `status`, and the gallery map only shows `READY` photos. |
 | FR-UPL-12 | Category, tags, description and coordinates apply to every photo of an upload. Each photo is stored in its own transaction, so a failing file doesn't undo the others. If at least one photo was stored, the browser is redirected back to the upload form (POST/Redirect/GET) with a success message and, if some files failed, a warning naming them; category and tags stay selected. If every file fails, the form is shown again with the errors. |
 
 ### 3.2 Gallery (GAL)
@@ -409,10 +409,11 @@ All endpoints return HTML views or redirects, except the feed (XML) and assets (
 | GET | `/photos/by-category/{category}` | `page`, `size`=5 | Filtered gallery |
 | GET | `/photos/by-tag/{tag}` | `page`, `size`=12 | Filtered gallery |
 | GET | `/photos/{id}/card` | — | Polled by processing cards: 204 while processing, then the finished card fragment |
+| POST | `/photos/{id}/retry-processing` | — | Requeue a failed photo, redirect to its detail page |
 | GET | `/photos/{id}/processed` | — | Polled by the detail page: 204 while processing, then 200 with `HX-Refresh: true` |
 | GET | `/photos/archive` | `page`, `size`=20 | Archive list |
 | GET | `/photos/archive/{id}` | — | Archived photo detail. Not found → redirect `/photos/archive` |
-| POST | `/photos/bulk` | `ids` (≤ 100), `action` (`archive`, `restore`, `category`, `addTags`, `removeTags`), `category`, `tags`, `returnTo` | Bulk action (FR-GAL-08), redirect to `returnTo` if local, else `/photos` |
+| POST | `/photos/bulk` | `ids` (≤ 100), `action` (`archive`, `restore`, `category`, `addTags`, `removeTags`, `retry`), `category`, `tags`, `returnTo` | Bulk action (FR-GAL-08), redirect to `returnTo` if local, else `/photos` |
 | POST | `/photos/{id}/restore` | `redirect` (default `/photos/archive`) | Redirect to `redirect` |
 
 ### 7.2 Categories and tags
@@ -460,6 +461,7 @@ All paths below `/api/v1`; see `/api-docs/ui` for the full schema.
 | POST | `/photos` (multipart) | Upload: 201 with `created` and `failed` lists, 400 if nothing was stored |
 | PUT | `/photos/{id}` (JSON) | Replace metadata (fields as `PhotoUpdateForm`) |
 | POST | `/photos/{id}/archive`, `/photos/{id}/restore` | 204 |
+| POST | `/photos/{id}/retry` | 202; 400 unless the photo's status is `FAILED` |
 | POST | `/photos/bulk` (JSON `ids`, `action`, `category`, `tags`) | `{changed, skipped}` |
 | GET, POST | `/categories`, `/tags` | List (sorted by name), create (201 + `Location`) |
 | GET, PUT, DELETE | `/categories/{id}`, `/tags/{id}` | Get, update, delete (409 if in use) |

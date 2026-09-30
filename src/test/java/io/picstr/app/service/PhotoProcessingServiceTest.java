@@ -133,6 +133,48 @@ class PhotoProcessingServiceTest {
         assertThat(photo.getProcessingStatus()).isEqualTo(ProcessingStatus.READY);
     }
 
+    @Test
+    void retryRequeuesAFailedPhoto() {
+        var photo = processing(7L, "g.jpg", "image/jpeg");
+        photo.setProcessingStatus(ProcessingStatus.FAILED);
+        stored("g.jpg", "jpeg-bytes");
+
+        service.retry(7L);
+
+        assertThat(photo.getProcessingStatus()).isEqualTo(ProcessingStatus.READY);
+        verify(thumbnailService).createThumbnail(eq("g.jpg"), any(InputStream.class), eq("image/jpeg"));
+    }
+
+    @Test
+    void retryRejectsPhotosThatDidNotFail() {
+        var photo = processing(8L, "h.jpg", "image/jpeg");
+        photo.setProcessingStatus(ProcessingStatus.READY);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.retry(8L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Only photos whose processing failed can be retried");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.retry(99L))
+                .isInstanceOf(NotFoundException.class);
+        verifyNoInteractions(storageService);
+    }
+
+    @Test
+    void bulkRetryOnlyRequeuesFailedPhotos() {
+        var failed = processing(9L, "i.jpg", "image/jpeg");
+        failed.setProcessingStatus(ProcessingStatus.FAILED);
+        var ready = new Photo();
+        ready.setId(10L);
+        ready.setProcessingStatus(ProcessingStatus.READY);
+        when(photoRepository.findAllById(List.of(9L, 10L))).thenReturn(List.of(failed, ready));
+        stored("i.jpg", "jpeg-bytes");
+
+        var result = service.retry(List.of(9L, 10L));
+
+        assertThat(result).isEqualTo(new PhotoService.BulkResult(1, 0));
+        assertThat(failed.getProcessingStatus()).isEqualTo(ProcessingStatus.READY);
+        assertThat(ready.getProcessingStatus()).isEqualTo(ProcessingStatus.READY);
+    }
+
     private Photo processing(long id, String key, String contentType) {
         var photo = new Photo();
         photo.setId(id);

@@ -1,8 +1,10 @@
 package io.picstr.app.service;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.UUID;
 
+import io.picstr.app.model.Photo;
 import io.picstr.app.model.ProcessingStatus;
 import io.picstr.app.repository.PhotoRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +55,36 @@ public class PhotoProcessingService {
             log.info("Resuming processing of {} photos", pending.size());
             pending.forEach(photo -> executor.execute(() -> process(photo.getId())));
         }
+    }
+
+    /** Queues a photo whose processing failed again; its original is still stored as uploaded. */
+    public void retry(Long photoId) {
+        var photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new NotFoundException("Photo not found: " + photoId));
+        if (photo.getProcessingStatus() != ProcessingStatus.FAILED) {
+            throw new IllegalArgumentException("Only photos whose processing failed can be retried");
+        }
+        requeue(photo);
+    }
+
+    /** Queues every failed photo among the given ids again; other photos are left alone. */
+    public PhotoService.BulkResult retry(List<Long> photoIds) {
+        int queued = 0;
+        for (var photo : photoRepository.findAllById(photoIds)) {
+            if (photo.getProcessingStatus() == ProcessingStatus.FAILED) {
+                requeue(photo);
+                queued++;
+            }
+        }
+        return new PhotoService.BulkResult(queued, 0);
+    }
+
+    private void requeue(Photo photo) {
+        photo.setProcessingStatus(ProcessingStatus.PROCESSING);
+        // Committed by save() before the worker looks at it (callers don't hold a transaction)
+        photoRepository.save(photo);
+        var id = photo.getId();
+        executor.execute(() -> process(id));
     }
 
     void process(Long photoId) {

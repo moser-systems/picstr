@@ -38,6 +38,9 @@ class PhotoControllerTest {
     @Mock
     private TagService tagService;
 
+    @Mock
+    private io.picstr.app.service.PhotoProcessingService processingService;
+
     @Test
     void byCategory_clampsPaginationAndAddsFilterAttributes() {
         var controller = new PhotoController();
@@ -280,6 +283,47 @@ class PhotoControllerTest {
         assertThat(done.getHeaders().getFirst("HX-Refresh")).isEqualTo("true");
     }
 
+    @Test
+    void retryProcessing_requeuesAndReturnsToTheRightDetailPage() {
+        var controller = uploadController();
+        var active = new Photo();
+        var archived = new Photo();
+        archived.setDeleteDate(java.time.Instant.now());
+        when(photoService.getAny(1L)).thenReturn(active);
+        when(photoService.getAny(2L)).thenReturn(archived);
+        var redirects = new RedirectAttributesModelMap();
+
+        assertThat(controller.retryProcessing(1L, redirects)).isEqualTo("redirect:/photos/1");
+        assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("msg.photo.retry.success");
+        assertThat(controller.retryProcessing(2L, new RedirectAttributesModelMap())).isEqualTo("redirect:/photos/archive/2");
+        verify(processingService).retry(1L);
+        verify(processingService).retry(2L);
+    }
+
+    @Test
+    void retryProcessing_showsWhyItCannotRetry() {
+        var controller = uploadController();
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("Only photos whose processing failed can be retried"))
+                .when(processingService).retry(3L);
+        when(photoService.getAny(3L)).thenReturn(new Photo());
+        var redirects = new RedirectAttributesModelMap();
+
+        controller.retryProcessing(3L, redirects);
+
+        assertThat(redirects.getFlashAttributes().get("error")).isEqualTo("Only photos whose processing failed can be retried");
+    }
+
+    @Test
+    void bulk_retryUsesTheProcessingService() {
+        var controller = uploadController();
+        when(processingService.retry(List.of(1L, 2L))).thenReturn(new PhotoService.BulkResult(1, 0));
+        var redirects = new RedirectAttributesModelMap();
+
+        controller.bulk(List.of(1L, 2L), "retry", null, null, "/photos", redirects, Locale.ENGLISH);
+
+        assertThat(redirects.getFlashAttributes().get("success")).isEqualTo("Processing restarted for 1 photos.");
+    }
+
     private PhotoController uploadController() {
         var controller = new PhotoController();
         ReflectionTestUtils.setField(controller, "service", photoService);
@@ -291,7 +335,9 @@ class PhotoControllerTest {
         messages.addMessage("msg.bulk.archive", Locale.ENGLISH, "{0} photos archived.");
         messages.addMessage("msg.bulk.tagLimit", Locale.ENGLISH, "{0} photo(s) skipped because they would have more than {1} tags.");
         messages.addMessage("msg.bulk.tooMany", Locale.ENGLISH, "Please select at most {0} photos.");
+        messages.addMessage("msg.bulk.retry", Locale.ENGLISH, "Processing restarted for {0} photos.");
         ReflectionTestUtils.setField(controller, "messageSource", messages);
+        ReflectionTestUtils.setField(controller, "processingService", processingService);
         return controller;
     }
 

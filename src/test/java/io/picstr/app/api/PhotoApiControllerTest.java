@@ -31,6 +31,9 @@ class PhotoApiControllerTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private io.picstr.app.service.PhotoProcessingService processingService;
+
     @InjectMocks
     private PhotoApiController controller;
 
