@@ -1,7 +1,9 @@
 package io.picstr.app.config;
 
+import java.util.List;
 import java.util.function.Supplier;
 
+import io.picstr.app.model.ThumbnailKeys;
 import io.picstr.app.repository.PhotoRepository;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
 import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
@@ -18,8 +20,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ArchivedAssetAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
-
-    static final String THUMBNAIL_KEY_PREFIX = "thumb_";
 
     private final PhotoRepository photoRepository;
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
@@ -39,7 +39,7 @@ public class ArchivedAssetAuthorizationManager implements AuthorizationManager<R
     }
 
     private boolean isArchived(String key) {
-        var internalFilename = key.startsWith(THUMBNAIL_KEY_PREFIX) ? key.substring(THUMBNAIL_KEY_PREFIX.length()) : key;
-        return photoRepository.existsByInternalFilenameAndDeleteDateIsNotNull(internalFilename);
+        var originals = ThumbnailKeys.isThumbnail(key) ? ThumbnailKeys.originalCandidates(key) : List.of(key);
+        return photoRepository.existsByInternalFilenameInAndDeleteDateIsNotNull(originals);
     }
 }

@@ -43,7 +43,7 @@
                 <div class="card card-link card-link-pop">
                     <a th:href="@{|/photos/${photo.id}|}">
                         <div th:title="${photo.originalFilename}" class="card-img-top img-responsive img-responsive-1x1"
-                             th:style="|background-image: url('/assets/thumb_${photo.internalFilename}')|">
+                             th:style="|background-image: url('/assets/${photo.thumbnailKey}')|">
                         </div>
                     </a>
                     <div class="card-body">

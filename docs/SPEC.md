@@ -98,7 +98,7 @@ All authenticated users have the same permissions (see [§9](#9-security)).
 | FR-UPL-03 | The maximum file and request size is 20 MB (`spring.servlet.multipart.max-file-size` / `max-request-size`). |
 | FR-UPL-04 | HEIC/HEIF files, recognised by a content type containing `heic`/`heif` or a `.heic`/`.heif` extension, are converted to JPEG with GraphicsMagick before storage. They are stored with extension `.jpg` and content type `image/jpeg`. |
 | FR-UPL-05 | The original is stored under the key `<random UUID><original extension>`. The user's original filename is kept as metadata. If the browser sends no filename, `capture.jpg` is used. |
-| FR-UPL-06 | A thumbnail is generated for every upload: it fits within 256×256 px with the aspect ratio kept, JPEG at quality 85, stored under `thumb_<internal filename>`. |
+| FR-UPL-06 | A thumbnail is generated for every upload: it fits within 256×256 px with the aspect ratio kept, JPEG at quality 85, stored under a key that always ends in `.jpg`: `thumb_<internal filename>` for JPEG originals, `thumb_<internal filename>.jpg` otherwise (see §8.2). |
 | FR-UPL-07 | If the image contains EXIF GPS data, latitude and longitude are extracted and **override** any coordinates submitted with the form. |
 | FR-UPL-08 | The form has a "use current location" button that fills the read-only latitude/longitude fields from the browser's Geolocation API (7 decimal places). |
 | FR-UPL-09 | A category is required. It must already exist and is resolved by ID or name. |
@@ -293,7 +293,7 @@ sequenceDiagram
     end
     P->>S: upload("<uuid><ext>")
     P->>T: createThumbnail(key, bytes)
-    T->>S: upload("thumb_<uuid><ext>")
+    T->>S: upload("thumb_<uuid><ext>[.jpg]")
     P->>P: resolve category, resolve/create tags
     P->>R: save(Photo)
     C-->>U: upload form + success message
@@ -442,9 +442,9 @@ public interface StorageService {
 | Object | Key |
 |---|---|
 | Original | `<UUID><ext>`, for example `3f2c…e1.jpg` (= `photos.internal_filename`) |
-| Thumbnail | `thumb_<internal filename>`, for example `thumb_3f2c…e1.jpg`. It always contains JPEG data, whatever the extension. |
+| Thumbnail | Always JPEG with a `.jpg` key: `thumb_<internal filename>` for JPEG originals (`thumb_3f2c…e1.jpg`), `thumb_<internal filename>.jpg` for others (`thumb_3f2c…e1.png.jpg`). Built by `ThumbnailKeys.forOriginal`; templates use `photo.thumbnailKey`. |
 
-The jobs treat every key that does not start with `thumb_` as an original. **Do not store any other objects in the PicStr bucket or directory**: reconciliation would import them as photos.
+Older versions stored thumbnails of non-JPEG originals as `thumb_<internal filename>` (for example `thumb_x.png`). `ThumbnailKeyMigration` moves them to the new key once at startup; until then, missing-files detection still accepts the old key and purge deletes both. The jobs treat every key that does not start with `thumb_` as an original. **Do not store any other objects in the PicStr bucket or directory**: reconciliation would import them as photos.
 
 ### 8.3 Backends
 
@@ -562,7 +562,7 @@ These are differences between the intended behaviour and the code, checked again
 | ISS-08 | UX | Defaults are inconsistent: the category filter uses page size 5, the other galleries 12; category names need 3 characters, tag names 1. | Partly fixed: page size is now 12; name-length rules still differ |
 | ISS-09 | UI | Tabler theme CSS is loaded, but the theme script isn't included and there is no toggle, so there's no working dark mode. The PWA manifest has empty `name`/`short_name` and no `start_url`. | Fixed: theme toggle and named manifest |
 | ISS-10 | Build | `Containerfile` copies `target/app.jar`, but the pom sets no `finalName`, so the jar is called `picstr-<version>.jar`; the image also lacks GraphicsMagick. The `Makefile` calls `npm run css-build`, which doesn't exist. | Fixed |
-| ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Open |
+| ISS-11 | Storage | A thumbnail key keeps the original's extension (for example `thumb_x.png`) although the content is always JPEG. | Fixed: thumbnail keys always end in `.jpg`; old keys migrated at startup |
 | ISS-12 | Security | In `oauth2` mode the login page is set to `/login`, but PicStr has no controller or template for it. Spring Security then doesn't generate its default login page, so `/login` probably returns an error page instead of the provider link. | Fixed: `/login` page listing the configured providers |
 | ISS-13 | Operations | There is no health endpoint (no Spring Boot Actuator) for container orchestration. | Fixed: `/actuator/health` |
 | ISS-14 | Docs | The README describes a gallery "map view"; only the per-photo map on the detail page exists. The default database name in `application.properties` is `picstr2`, while the README uses `picstr`. | Open |

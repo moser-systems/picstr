@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -75,6 +76,11 @@ public class Photo {
         if (uploadedAt == null) {
             uploadedAt = Instant.now();
         }
+    }
+
+    @Transient
+    public String getThumbnailKey() {
+        return ThumbnailKeys.forOriginal(internalFilename);
     }
 
     public String getTagSummary() {

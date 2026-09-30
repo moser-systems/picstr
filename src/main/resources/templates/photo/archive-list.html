@@ -41,7 +41,7 @@
                     <tr th:each="photo : ${photos}">
                         <td>
                             <a th:href="@{|/photos/archive/${photo.id}|}" th:title="${photo.originalFilename}">
-                                <img th:src="|/assets/thumb_${photo.internalFilename}|" th:alt="${photo.originalFilename}" style="max-width: 50px; max-height: 50px;" />
+                                <img th:src="|/assets/${photo.thumbnailKey}|" th:alt="${photo.originalFilename}" style="max-width: 50px; max-height: 50px;" />
                             </a></td>
                         <td>
                             <a th:href="@{|/categories/${photo.category.id}|}" class="text-decoration-none">

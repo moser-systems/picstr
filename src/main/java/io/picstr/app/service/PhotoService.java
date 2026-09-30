@@ -21,6 +21,7 @@ import io.picstr.app.form.PhotoUpdateForm;
 import io.picstr.app.model.Category;
 import io.picstr.app.model.Photo;
 import io.picstr.app.model.Tag;
+import io.picstr.app.model.ThumbnailKeys;
 import io.picstr.app.repository.CategoryRepository;
 import io.picstr.app.repository.PhotoRepository;
 import io.picstr.app.repository.TagRepository;
@@ -37,7 +38,6 @@ import org.springframework.util.StringUtils;
 @Service
 public class PhotoService {
 
-    private static final String THUMBNAIL_KEY_PREFIX = "thumb_";
     private static final String DEFAULT_CATEGORY_NAME = "other";
 
     @Autowired
@@ -220,7 +220,12 @@ public class PhotoService {
             try {
                 // Storage deletes are idempotent, so a photo whose DB delete fails is retried on the next run.
                 var originalKey = photo.getInternalFilename();
-                storageService.delete(THUMBNAIL_KEY_PREFIX + originalKey);
+                var thumbnailKey = ThumbnailKeys.forOriginal(originalKey);
+                var legacyThumbnailKey = ThumbnailKeys.legacyForOriginal(originalKey);
+                storageService.delete(thumbnailKey);
+                if (!legacyThumbnailKey.equals(thumbnailKey)) {
+                    storageService.delete(legacyThumbnailKey);
+                }
                 storageService.delete(originalKey);
                 // Entity delete (not a bulk delete) so JPA also removes the photo_tags rows.
                 photoRepository.delete(photo);
@@ -243,7 +248,11 @@ public class PhotoService {
         for (var photo : activePhotos) {
             var internalFilename = photo.getInternalFilename();
             var originalExists = storageService.exists(internalFilename);
-            var thumbnailExists = storageService.exists(THUMBNAIL_KEY_PREFIX + internalFilename);
+            // A thumbnail under the legacy key still counts until ThumbnailKeyMigration has moved it
+            var thumbnailKey = ThumbnailKeys.forOriginal(internalFilename);
+            var legacyThumbnailKey = ThumbnailKeys.legacyForOriginal(internalFilename);
+            var thumbnailExists = storageService.exists(thumbnailKey)
+                    || (!legacyThumbnailKey.equals(thumbnailKey) && storageService.exists(legacyThumbnailKey));
 
             // Archive if either the original or thumbnail is missing
             if (!originalExists || !thumbnailExists) {
@@ -276,7 +285,7 @@ public class PhotoService {
 
             try {
                 var hasRecord = photoRepository.findByInternalFilename(key).isPresent();
-                var thumbnailKey = THUMBNAIL_KEY_PREFIX + key;
+                var thumbnailKey = ThumbnailKeys.forOriginal(key);
                 var hasThumbnail = storageService.exists(thumbnailKey);
                 if (hasRecord && hasThumbnail) {
                     continue;
@@ -391,7 +400,7 @@ public class PhotoService {
         if (!StringUtils.hasText(key)) {
             return false;
         }
-        return !key.startsWith(THUMBNAIL_KEY_PREFIX);
+        return !ThumbnailKeys.isThumbnail(key);
     }
 
     public Page<Photo> list(int page, int size) {

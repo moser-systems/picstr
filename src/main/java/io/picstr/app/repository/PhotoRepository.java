@@ -2,6 +2,7 @@ package io.picstr.app.repository;
 
 import io.picstr.app.model.Photo;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -35,5 +36,5 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
 
 	Optional<Photo> findByInternalFilename(String internalFilename);
 
-	boolean existsByInternalFilenameAndDeleteDateIsNotNull(String internalFilename);
+	boolean existsByInternalFilenameInAndDeleteDateIsNotNull(Collection<String> internalFilenames);
 }
