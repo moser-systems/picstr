@@ -1,19 +1,19 @@
 clean:
 	./mvnw clean
 
-update:
-	npm update
-	mkdir -p ./src/main/resources/static/css/
-	mkdir -p ./src/main/resources/static/js/
-	cp -rf ./node_modules/hyperscript.org/dist/_hyperscript.min.js ./src/main/resources/static/js/
-	cp -rf ./node_modules/htmx.org/dist/htmx.min.js ./src/main/resources/static/js/
-
-install: clean
+install:
 	npm install
 
-build: install update
-	npm run css-build
+assets: install
+	npm run build
+
+build: assets
 	./mvnw package
 
 check-mvn-updates:
 	./mvnw versions:display-dependency-updates
+
+check-npm-updates:
+	npm outdated
+
+.PHONY: clean install assets build check-mvn-updates check-npm-updates
