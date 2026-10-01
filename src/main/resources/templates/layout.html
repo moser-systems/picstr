@@ -34,6 +34,7 @@
     <script src="/vendor/htmx/htmx.min.js"></script>
     <script src="/vendor/hyperscript/hyperscript.min.js"></script>
     <script src="/js/bulk.js" defer></script>
+    <script src="/js/connection.js" defer></script>
 
     <style>
         :root {
@@ -326,6 +327,17 @@
                 </div>
             </div>
         </footer>
+    </div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="connection-toast" class="toast" role="status" aria-live="polite" aria-atomic="true"
+         th:attr="data-offline=#{msg.connection.offline},data-session=#{msg.connection.session},
+                  data-error=#{msg.connection.error},data-restored=#{msg.connection.restored}">
+        <div class="toast-header">
+            <strong class="me-auto" th:text="#{label.app.title}">PicStr</strong>
+            <button type="button" class="ms-2 btn-close" data-bs-dismiss="toast" th:aria-label="#{label.close}"></button>
+        </div>
+        <div class="toast-body"></div>
     </div>
 </div>
 <script>
