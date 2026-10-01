@@ -98,7 +98,7 @@
             </div>
         </div>
 
-        <div class="mt-3" th:if="${pageData}">
+        <div class="mt-3" th:if="${pageData != null and pageData.totalPages > 1}">
             <ul class="pagination m-0">
                 <li class="page-item" th:classappend="${pageData.first} ? ' disabled'">
                     <a class="page-link" th:href="@{/tags(page=${pageData.number - 1},size=${pageSize})}" th:if="${!pageData.first}">&laquo;</a>
