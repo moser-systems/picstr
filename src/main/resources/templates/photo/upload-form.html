@@ -21,22 +21,22 @@
                     <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}">
                         <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Error</div>
                     </div>
-                    <div class="mb-3" id="image-inputs" th:attr="data-selected-text=#{label.photo.selected}">
+                    <div class="mb-3" id="image-inputs"
+                         th:with="maxImages=${T(io.picstr.app.form.UploadForm).MAX_IMAGES}"
+                         th:attr="data-selected-text=#{label.photo.selected},data-max=${maxImages}">
                         <span class="form-label" th:text="#{label.photo.images}">Photos</span>
-                        <div class="row g-2">
-                            <div class="col-sm-6">
-                                <label class="btn btn-primary w-100">
-                                    <span th:text="#{label.photo.takePhoto}">Take photo</span>
-                                    <input type="file" name="images" class="d-none" accept="image/*" capture="environment">
-                                </label>
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="btn btn-outline-primary w-100">
-                                    <span th:text="#{label.photo.choosePhotos(${T(io.picstr.app.form.UploadForm).MAX_IMAGES})}">Choose photos</span>
-                                    <input type="file" name="images" class="d-none" accept="image/*" multiple>
-                                </label>
-                            </div>
-                        </div>
+                        <label class="dropzone d-block text-center rounded mb-2" id="image-dropzone" role="button">
+                            <span class="dz-message d-block my-3">
+                                <span class="d-block h3 mb-1" th:text="#{label.photo.dropzone}">Drop photos here or click to choose</span>
+                                <span class="d-block" th:text="#{label.photo.dropzone.hint(${maxImages})}">Up to 20 images</span>
+                            </span>
+                            <input type="file" name="images" class="d-none" accept="image/*" multiple>
+                        </label>
+                        <label class="btn btn-primary w-100">
+                            <span th:text="#{label.photo.takePhoto}">Take photo</span>
+                            <input type="file" name="images" class="d-none" accept="image/*" capture="environment">
+                        </label>
+                        <div class="row g-2 mt-1" id="image-previews"></div>
                         <div class="form-text" id="image-selection"></div>
                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('images')}" th:errors="*{images}">Images error</div>
                     </div>
@@ -122,14 +122,65 @@
         (() => {
             const container = document.getElementById('image-inputs');
             const selection = document.getElementById('image-selection');
+            const previews = document.getElementById('image-previews');
+            const dropzone = document.getElementById('image-dropzone');
+            const multiple = dropzone.querySelector('input[type="file"]');
             const inputs = container.querySelectorAll('input[type="file"]');
+            const max = Number(container.dataset.max);
+            let previewUrls = [];
+            const renderPreviews = (files) => {
+                previewUrls.forEach((url) => URL.revokeObjectURL(url));
+                previewUrls = files.map((file) => URL.createObjectURL(file));
+                previews.replaceChildren(...files.map((file, i) => {
+                    const col = document.createElement('div');
+                    col.className = 'col-3 col-sm-2';
+                    const img = document.createElement('img');
+                    img.className = 'rounded w-100';
+                    img.style.aspectRatio = '1';
+                    img.style.objectFit = 'cover';
+                    img.alt = file.name;
+                    img.title = file.name;
+                    img.src = previewUrls[i];
+                    // e.g. HEIC, which most browsers can't render
+                    img.onerror = () => {
+                        const name = document.createElement('div');
+                        name.className = 'rounded border small text-secondary text-truncate p-1';
+                        name.textContent = file.name;
+                        img.replaceWith(name);
+                    };
+                    col.append(img);
+                    return col;
+                }));
+            };
             const update = () => {
                 const files = [...inputs].flatMap((input) => [...input.files]);
                 selection.textContent = files.length === 0 ? ''
                     : container.dataset.selectedText.replace('{0}', files.length) + ': '
                         + files.map((file) => file.name).join(', ');
+                renderPreviews(files);
             };
             inputs.forEach((input) => input.addEventListener('change', update));
+
+            ['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => {
+                event.preventDefault();
+                dropzone.classList.add('dz-drag-hover');
+            }));
+            dropzone.addEventListener('dragleave', (event) => {
+                if (!dropzone.contains(event.relatedTarget)) {
+                    dropzone.classList.remove('dz-drag-hover');
+                }
+            });
+            dropzone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                dropzone.classList.remove('dz-drag-hover');
+                const transfer = new DataTransfer();
+                [...multiple.files, ...event.dataTransfer.files]
+                    .filter((file) => file.type.startsWith('image/'))
+                    .slice(0, max)
+                    .forEach((file) => transfer.items.add(file));
+                multiple.files = transfer.files;
+                multiple.dispatchEvent(new Event('change'));
+            });
         })();
     </script>
 </div>
